@@ -1,7 +1,11 @@
+import 'source-map-support/register'
+
 import express from 'express'
 import socket from 'socket.io'
 import http from 'http'
 import path from 'path'
+import helmet from 'helmet'
+import compression from 'compression'
 //region import {sign} from 'crypto'
 
 const app = express()
@@ -10,16 +14,12 @@ const io = socket(server)
 
 const port = process.env.PORT || 3000
 
+app.use(compression())
+
+app.use('/static', express.static(path.join(__dirname, '../')))
+app.use('/assets', express.static(path.join(__dirname, '../client/assets')))
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '../../dist/client/index.html'))
-})
-
-server.listen(port, () => {
-    console.log(`Server running on port ${server.address().port}.`)
-})
-
-/*app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
 })
 
 server.listen(port, () => {
@@ -165,4 +165,3 @@ setInterval(() => {
         }
     }
 }, UPDATE_INTERVAL)
-*/

@@ -1,12 +1,12 @@
 import 'phaser'
-//import resize from './components/resize'
-//import Game from './game'
-//import FullScreenEvent from './components/fullscreenEvent'
+import resize from './components/resize'
+import Game from './Game'
+import FullScreenEvent from './components/FullScreenEvent'
 
-window.addEventListener('load', () => {
-  /*let game = new Game()
+window.addEventListener('DOMContentLoaded', () => {
+  let game = new Game()
 
-  window.addEventListener('resize', () => {
+  /*window.addEventListener('resize', () => {
     resize(game)
   })
 
