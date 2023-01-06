@@ -1,22 +1,20 @@
+
+
 {
-    "compilerOptions": {
-      "target": "ES2015",
-      "module": "ES2015",
-
-      "strict": true,
-      "esModuleInterop": true,
-      "skipLibCheck": true,
-      "forceConsistentCasingInFileNames": true,
-
-      "allowJs": true,
-      "allowUnreachableCode": false,
-      "noImplicitAny": false,
-      "sourceMap": true,
-      "strictPropertyInitialization": false,
-
-      "moduleResolution": "node",
-      "lib": ["dom", "esnext"]
-    },
-    "include": ["src/**/*"],
-    "exclude": ["node_modules", "**/*.spec.ts"]
-  }
+  "compilerOptions": {
+    "target": "es5",
+    "module": "esnext",
+    "lib": ["esnext", "dom"],
+    "allowJs": false,
+    "checkJs": false,
+    "strict": true,
+    "sourceMap": true,
+    "noImplicitAny": true,
+    "esModuleInterop": true,
+    "moduleResolution": "node",
+    "strictPropertyInitialization": false,
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
+}

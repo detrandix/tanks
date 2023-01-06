@@ -1,18 +1,24 @@
-const express = require('express');
-const socket = require('socket.io')
-const http = require('http')
-const path = require('path')
-const { sign } = require('crypto');
-
-const port = process.env.PORT || 3000
+import express from 'express'
+import socket from 'socket.io'
+import http from 'http'
+import path from 'path'
+//region import {sign} from 'crypto'
 
 const app = express()
 const server = http.createServer(app)
 const io = socket(server)
 
-app.use(express.static(path.join(__dirname, 'static')))
+const port = process.env.PORT || 3000
 
 app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, '../../dist/client/index.html'))
+})
+
+server.listen(port, () => {
+    console.log(`Server running on port ${server.address().port}.`)
+})
+
+/*app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 })
 
@@ -159,3 +165,4 @@ setInterval(() => {
         }
     }
 }, UPDATE_INTERVAL)
+*/
