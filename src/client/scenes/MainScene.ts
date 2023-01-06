@@ -1,131 +1,13 @@
 import io from 'socket.io-client'
-
-
-class ProgressBar extends Phaser.GameObjects.Container {
-    constructor(scene, x, y, width, height, borderColor = 0x000000, progressColor = 0x00ff00, percentage = 1)
-    {
-		super(scene, x, y)
-
-        this.width = width
-        this.height = height
-        this.progressColor = progressColor
-
-        this.progressBox = scene.add.graphics();
-        this.progressBar = scene.add.graphics();
-
-        this.progressBox
-            .fillStyle(borderColor, 0.8)
-            .fillRect(-width/2, 0, width, height)
-
-        this.progress(percentage)
-
-        this.add(this.progressBox)
-        this.add(this.progressBar)
-    }
-
-    progress(percentage) {
-        this.progressBar
-            .clear()
-            .fillStyle(this.progressColor, 1)
-            .fillRect(-this.width/2 + 1, 1, (this.width - 2) * percentage, this.height - 2)
-    }
-}
-
-Phaser.GameObjects.GameObjectFactory.register('progressBar', function (x, y, width, height, borderColor, progressColor) {
-	const tank = new ProgressBar(this.scene, x, y, width, height, borderColor, progressColor)
-
-    this.displayList.add(tank)
-    //this.updateList.add(tank)
-
-    return tank
-})
-
-class Tank extends Phaser.GameObjects.Container {
-    constructor(scene, player)
-    {
-		super(scene, player.x, player.y)
-
-        this.tankBody = scene.add
-            .sprite(0, 0, 'tank-body-' + player.color)
-            .setOrigin(0.5, 0.5)
-            .setSize(164, 256)
-
-        this.tankTurret = scene.add
-            .sprite(
-                // TODO - make this somehow better
-                50 * Math.cos(Phaser.Math.DegToRad(player.bodyRotation + 90)),
-                50 * Math.sin(Phaser.Math.DegToRad(player.bodyRotation + 90)),
-                'tank-turret-' + player.color)
-            .setOrigin(0.5, 0.8)
-
-        this.hpProgressBar = scene.add
-                .progressBar(0, -100, 100, 10)
-
-        this.add(this.tankBody)
-        this.add(this.tankTurret)
-        this.add(this.hpProgressBar)
-    }
-
-    move(player) {
-        this.x = player.x
-        this.y = player.y
-        this.tankBody.angle = player.bodyRotation
-
-        this.tankTurret.x = 50 * Math.cos(Phaser.Math.DegToRad(player.bodyRotation + 90))
-        this.tankTurret.y = 50 * Math.sin(Phaser.Math.DegToRad(player.bodyRotation + 90))
-        this.tankTurret.angle = player.turretRotation
-    }
-}
-
-Phaser.GameObjects.GameObjectFactory.register('tank', function (player) {
-	const tank = new Tank(this.scene, player)
-
-    this.displayList.add(tank)
-    //this.updateList.add(tank)
-
-    return tank
-})
-
-class WeaponIndicator extends Phaser.GameObjects.Container {
-	constructor(scene, x, y, weapon)
-	{
-		super(scene, x, y)
-        this.setScrollFactor(0)
-
-        this.arc = scene.add.graphics()
-        this.setTimeToReload(1)
-
-        this.sprite = scene.add.sprite(0, 0, weapon)
-
-        this.add(this.arc)
-        this.add(this.sprite)
-	}
-
-    setTimeToReload(percentage) {
-        this.arc
-            .clear()
-            .fillStyle(0xffff00, 1)
-            .slice(0, 0, 50, Phaser.Math.DegToRad(percentage*360), Phaser.Math.DegToRad(0), true)
-            .fillPath()
-        if (percentage < 1) {
-            this.setAlpha(percentage / 1.2)
-        } else {
-            this.clearAlpha()
-        }
-    }
-}
-
-Phaser.GameObjects.GameObjectFactory.register('weaponIndicator', function (x, y, weapon) {
-	const weaponIndicator = new WeaponIndicator(this.scene, x, y, weapon)
-
-    this.displayList.add(weaponIndicator)
-    //this.updateList.add(weaponIndicator)
-
-    return weaponIndicator
-})
-
+import Tank from '../objects/Tank'
+import WeaponIndicator from '../objects/WeaponIndicator'
 
 export default class MainScene extends Phaser.Scene {
+    background: Phaser.GameObjects.TileSprite|null;
+    leftWeapon: WeaponIndicator|null; // TODO: is this good solution?
+    rightWeapon: WeaponIndicator|null; // TODO: is this good solution?
+    socket: SocketIOClient.Socket;
+
     constructor() {
         super('MainScene');
         this.background = null
@@ -150,8 +32,11 @@ export default class MainScene extends Phaser.Scene {
         this.socket.on('init-state', (players) => {
             for (let id in players) {
                 if (this.socket.id === id) {
-                    this.leftWeapon = this.add.weaponIndicator(100, 100, 'heavy-shell')
-                    this.rightWeapon = this.add.weaponIndicator(300, 100, 'granade-shell')
+                    this.leftWeapon = new WeaponIndicator(this, 100, 100, 'heavy-shell')
+                    this.add.existing(this.leftWeapon)
+                    this.rightWeapon = new WeaponIndicator(this, 300, 100, 'granade-shell')
+                    this.add.existing(this.rightWeapon)
+
 
                     const tank = this.createTank(players[id])
                     // nesmrtelnost - TODO
@@ -249,7 +134,9 @@ export default class MainScene extends Phaser.Scene {
 	}
 
     createTank(player) {
-        const entity = this.add.tank(player)
+        const entity = new Tank(this, player)
+        this.add.existing(entity)
+
         const data = {
             entity,
             player

@@ -1,16 +1,16 @@
 import 'source-map-support/register'
 
 import express from 'express'
-import socket from 'socket.io'
+import { Server } from 'socket.io'
 import http from 'http'
 import path from 'path'
-import helmet from 'helmet'
 import compression from 'compression'
-//region import {sign} from 'crypto'
+import Player from '../model/Player'
+import Bullet from '../model/Bullet'
 
 const app = express()
 const server = http.createServer(app)
-const io = socket(server)
+const io = new Server(server, { cors: { origin: '*' } });
 
 const port = process.env.PORT || 3000
 
@@ -23,15 +23,15 @@ app.get('/', (req, res) => {
 })
 
 server.listen(port, () => {
-    console.log(`Server running on port ${server.address().port}.`)
+    console.log(`Server running on port ${port}.`)
 })
 
-const players = {}
+const players: Record<string, Player> = {}
 const sockets = {}
-const fires = {}
+const fires: Record<string, Bullet> = {}
 
 const DEG2RAD = Math.PI/180
-const deg2rad = deg => deg * DEG2RAD
+const deg2rad = (deg: number) => deg * DEG2RAD
 
 function uuid() {
     return crypto.randomUUID()
@@ -88,7 +88,7 @@ io.on('connection', (socket) => {
         io.sockets.emit('player-moved', players[socket.id])
     })
 
-    socket.on('turret-rotate', (targetAngle) => {
+    socket.on('turret-rotate', (targetAngle: number) => {
         const diff = (players[socket.id].turretRotation - 90) - targetAngle
         players[socket.id].turretRotation -= diff // TODO: emit step by step
         players[socket.id].lastAction = Date.now()
