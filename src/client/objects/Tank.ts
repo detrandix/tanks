@@ -8,6 +8,7 @@ export default class Tank extends Phaser.GameObjects.Container {
     tankTurret: Phaser.GameObjects.Sprite
     hpProgressBar: ProgressBar
     tweenImmortality: Phaser.Tweens.Tween|null = null
+    nameLabel: Phaser.GameObjects.Text
 
     constructor(scene: Phaser.Scene, player: Player) {
 		super(scene, player.x, player.y)
@@ -28,9 +29,16 @@ export default class Tank extends Phaser.GameObjects.Container {
         this.hpProgressBar = new ProgressBar(scene, 0, -100, 100, 10)
         scene.add.existing(this.hpProgressBar)
 
-        this.add(this.tankBody)
-        this.add(this.tankTurret)
-        this.add(this.hpProgressBar)
+        this.nameLabel = scene.add
+            .text(0, -80, player.name, {backgroundColor: 'rgba(0, 0, 0, .5)'})
+            .setOrigin(0.5, 0)
+
+        this.add([
+            this.tankBody,
+            this.tankTurret,
+            this.hpProgressBar,
+            this.nameLabel,
+        ])
 
         this.updateImortality(player)
     }
@@ -38,6 +46,7 @@ export default class Tank extends Phaser.GameObjects.Container {
     update(player: Player) {
         this.move(player)
         this.updateImortality(player)
+        this.nameLabel.setText(player.name)
     }
 
     move(player: Player) {
