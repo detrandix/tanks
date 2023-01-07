@@ -1,5 +1,6 @@
 import TankModel from './TankModel';
 import TimeToReload from './TimeToReload';
+import Weapon from './Weapon';
 
 export default interface Player {
     connected: number,
@@ -7,7 +8,7 @@ export default interface Player {
     playerId: string,
     name: string,
     color: string, // enum
-    timeToReload: TimeToReload|null,
+    weapons: Array<Weapon>,
     hp: number,
     maxHp: number,
     immortalityTtl: number|null,

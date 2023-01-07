@@ -8,6 +8,9 @@ import compression from 'compression'
 import Player from '../model/Player'
 import Bullet from '../model/Bullet'
 import TankModel from '../model/TankModel'
+import { WeaponsEnum } from '../model/WeaponsEnum'
+import BulletFactory from '../services/BulletFactory'
+import WeaponService from '../services/WeaponService'
 
 const app = express()
 const server = http.createServer(app)
@@ -52,7 +55,10 @@ function createTank(playerId: string): Player {
         playerId: playerId,
         name: 'Player' + playerId,
         color: tankColors.random(),
-        timeToReload: null,
+        weapons: [
+            {type: WeaponsEnum.Heavy, timeToReload: null},
+            {type: WeaponsEnum.Granade, timeToReload: null},
+        ],
         hp: 100,
         maxHp: 100,
         immortalityTtl: 3000,
@@ -109,26 +115,17 @@ io.on('connection', (socket) => {
         io.sockets.emit('player-moved', players[socket.id])
     })
 
-    socket.on('fire', () => {
-        if (players[socket.id].timeToReload !== null) {
+    socket.on('fire', (index) => {
+        const player = players[socket.id]
+
+        if (player.weapons[index] === undefined || player.weapons[index].timeToReload !== null) {
             return
         }
 
         const id = uuid()
-        fires[id] = {
-            id,
-            x: players[socket.id].tankModel.center.x,
-            y: players[socket.id].tankModel.center.y,
-            angle: players[socket.id].tankModel.turretAngle,
-            created: Date.now(),
-            ttl: 1000,
-            speed: 1, // px / ms
-        }
-        players[socket.id].timeToReload = {
-            ttl: 1000,
-            total: 1000,
-        }
-        players[socket.id].lastAction = Date.now()
+        fires[id] = BulletFactory.create(id, player.weapons[index].type, player.tankModel)
+        player.weapons[index].timeToReload = WeaponService.getTimeToReload(player.weapons[index].type)
+        player.lastAction = Date.now()
         io.sockets.emit('fires', fires)
     })
 
@@ -144,10 +141,10 @@ io.on('connection', (socket) => {
 // TODO: maybe slow down after add interpolation to client code
 const UPDATE_INTERVAL = 15
 
-function updateFire(fire) {
+function updateFire(fire: Bullet) {
     let removedTime = UPDATE_INTERVAL
     if (removedTime > fire.ttl) {
-        removedTime = fire.tttl
+        removedTime = fire.ttl
     }
     const move = fire.speed * removedTime
     return {
@@ -168,14 +165,18 @@ setInterval(() => {
         }
     }
     io.sockets.emit('fires', fires)
+
     for (let id in players) {
-        if (players[id].timeToReload !== null) {
-            if (players[id].timeToReload.ttl <= UPDATE_INTERVAL) {
-                players[id].timeToReload = null
-            } else {
-                players[id].timeToReload.ttl -= UPDATE_INTERVAL
+        for (let weapon of players[id].weapons) {
+            if (weapon.timeToReload !== null) {
+                if (weapon.timeToReload.ttl <= UPDATE_INTERVAL) {
+                    weapon.timeToReload = null
+                } else {
+                    weapon.timeToReload.ttl -= UPDATE_INTERVAL
+                }
             }
         }
+
         if (players[id].immortalityTtl !== null) {
             if (players[id].immortalityTtl <= UPDATE_INTERVAL) {
                 players[id].immortalityTtl = null

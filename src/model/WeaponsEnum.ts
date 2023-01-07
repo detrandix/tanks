@@ -1,4 +1,4 @@
-enum WeaponEnum {
-    'heavy-shell',
-    'granade-shell',
+export enum WeaponsEnum {
+    Heavy = 'heavy-shell',
+    Granade = 'granade-shell',
 }

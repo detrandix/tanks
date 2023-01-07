@@ -1,3 +1,5 @@
+import { WeaponsEnum } from './WeaponsEnum'
+
 export default interface Bullet {
     id: string,
     x: number,
@@ -5,5 +7,6 @@ export default interface Bullet {
     angle: number,
     created: number,
     ttl: number,
-    speed: number,
+    speed: number, // px / ms
+    type: WeaponsEnum,
 }

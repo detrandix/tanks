@@ -7,15 +7,14 @@ import Tank from '../objects/Tank'
 import WeaponIndicator from '../objects/WeaponIndicator'
 
 export default class MainScene extends Phaser.Scene {
-    background: Phaser.GameObjects.TileSprite|null;
-    leftWeapon: WeaponIndicator|null; // TODO: is this good solution?
-    rightWeapon: WeaponIndicator|null; // TODO: is this good solution?
-    socket: SocketIOClient.Socket;
-    cursorKeys: object;
+    background: Phaser.GameObjects.TileSprite|null
+    weaponIndicators: Array<WeaponIndicator>
+    socket: SocketIOClient.Socket
+    cursorKeys: object
 
     state: {
         tanks: Record<string, {entity: Tank, player: Player}>,
-        fires: Record<string, Bullet>,
+        fires: Record<string, {entity: Phaser.GameObjects.TileSprite, data: Bullet}>,
         lastMousePosition: Point|null
     };
 
@@ -23,14 +22,13 @@ export default class MainScene extends Phaser.Scene {
         super('MainScene');
 
         this.background = null
+        this.weaponIndicators = []
         this.state = {
             tanks: {},
             // TODO: renmate to bullets
             fires: {},
             lastMousePosition: null,
         }
-        this.leftWeapon = null
-        this.rightWeapon = null
     }
 
 	create({socket, players}: MainSceneData) {
@@ -41,19 +39,22 @@ export default class MainScene extends Phaser.Scene {
         }
 
         this.input.setPollAlways()
+        this.input.mouse.disableContextMenu()
 
         this.background = this.add.tileSprite(0, 0, this.cameras.main.width, this.cameras.main.height, 'background')
             .setTileScale(.5, .5)
             .setScrollFactor(0)
 
-        this.leftWeapon = new WeaponIndicator(this, 100, 100, 'heavy-shell')
-        this.add.existing(this.leftWeapon)
-        this.rightWeapon = new WeaponIndicator(this, 300, 100, 'granade-shell')
-        this.add.existing(this.rightWeapon)
-
         for (let id in players) {
             if (this.socket.id === id) {
                 const tank = this.createTank(players[id])
+
+                for (let i=0; i<players[id].weapons.length; i++) {
+                    const weapon = players[id].weapons[i]
+                    const weaponIndicator = new WeaponIndicator(this, 150 * (i + 1), 100, weapon.type)
+                    this.add.existing(weaponIndicator)
+                    this.weaponIndicators.push(weaponIndicator)
+                }
 
                 this.cameras.main.startFollow(tank.entity)
                 this.cameras.main.setFollowOffset(-this.cameras.main.centerX/2, -this.cameras.main.centerY/2)
@@ -80,10 +81,14 @@ export default class MainScene extends Phaser.Scene {
         this.socket.on('update-player', (player: Player) => {
             if (player.playerId in this.state.tanks) {
                 this.state.tanks[player.playerId].player = player
-                if (player.timeToReload) {
-                    this.leftWeapon.setTimeToReload((player.timeToReload.total - player.timeToReload.ttl) / player.timeToReload.total)
-                } else {
-                    this.leftWeapon.setTimeToReload(1)
+                for (let i=0; i<player.weapons.length; i++) {
+                    // TODO: check if there is more/less weapons
+                    const timeToReload = player.weapons[i].timeToReload
+                    if (timeToReload) {
+                        this.weaponIndicators[i].setTimeToReload((timeToReload.total - timeToReload.ttl) / timeToReload.total)
+                    } else {
+                        this.weaponIndicators[i].setTimeToReload(1)
+                    }
                 }
             }
         })
@@ -92,19 +97,19 @@ export default class MainScene extends Phaser.Scene {
             for (let id in fires) {
                 if (id in this.state.fires) {
                     // update
-                    this.state.fires[id].fire.x = fires[id].x
-                    this.state.fires[id].fire.y = fires[id].y
-                    this.state.fires[id].fire.angle = fires[id].angle
+                    this.state.fires[id].entity.x = fires[id].x
+                    this.state.fires[id].entity.y = fires[id].y
+                    this.state.fires[id].entity.angle = fires[id].angle
                     this.state.fires[id].data = fires[id]
                 } else {
                     // create
                     const fire = this.add
-                        .sprite(fires[id].x, fires[id].y, 'heavy-shell')
+                        .sprite(fires[id].x, fires[id].y, fires[id].type)
                         .setOrigin(0.5, 0.5)
                         .setSize(40, 40)
                     fire.angle = fires[id].angle
                     this.state.fires[id] = {
-                        fire,
+                        entity: fire,
                         data: fires[id]
                     }
                 }
@@ -112,7 +117,7 @@ export default class MainScene extends Phaser.Scene {
             for (let id in this.state.fires) {
                 if (! (id in fires)) {
                     // delete
-                    this.state.fires[id].fire.destroy()
+                    this.state.fires[id].entity.destroy()
                     delete this.state.fires[id]
                 }
             }
@@ -136,7 +141,9 @@ export default class MainScene extends Phaser.Scene {
 
     onMouseClick(pointer: Phaser.Input.Pointer) {
         if (pointer.leftButtonDown()) {
-            this.socket.emit('fire')
+            this.socket.emit('fire', 0)
+        } else if (pointer.rightButtonDown()) {
+            this.socket.emit('fire', 1)
         }
     }
 
