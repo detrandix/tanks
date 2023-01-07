@@ -7,10 +7,9 @@ import path from 'path'
 import compression from 'compression'
 import Player from '../model/Player'
 import Bullet from '../model/Bullet'
-import TankModel from '../model/TankModel'
-import { WeaponsEnum } from '../model/WeaponsEnum'
 import BulletFactory from '../services/BulletFactory'
 import WeaponService from '../services/WeaponService'
+import TankFactory from '../services/TankFactory'
 
 const app = express()
 const server = http.createServer(app)
@@ -41,43 +40,10 @@ function uuid() {
     return crypto.randomUUID()
 }
 
-Array.prototype.random = function () {
-  return this[Math.floor((Math.random()*this.length))];
-}
-const tankColors = ['brown', 'green', 'cyan', 'blue']
-
-function createTank(playerId: string): Player {
-    const x = Math.floor(Math.random() * 300) + 200
-    const y = Math.floor(Math.random() * 300) + 200
-    return {
-        connected: Date.now(),
-        lastAction: Date.now(),
-        playerId: playerId,
-        name: 'Player' + playerId,
-        color: tankColors.random(),
-        weapons: [
-            {type: WeaponsEnum.Heavy, timeToReload: null},
-            {type: WeaponsEnum.Granade, timeToReload: null},
-        ],
-        hp: 100,
-        maxHp: 100,
-        immortalityTtl: 3000,
-        tankModel: new TankModel(
-            {x, y},
-            164,
-            256,
-            0,
-            50,
-            0,
-            {x: 0.5, y: 0.8},
-        ), // TODO move constant to some TankFactory
-    }
-}
-
 io.on('connection', (socket) => {
     console.log(`A user #${socket.id} just connected.`)
     sockets[socket.id] = socket
-    players[socket.id] = createTank(socket.id)
+    players[socket.id] = TankFactory.create(socket.id)
     socket.emit('init-state', players) // send the players object to the new player
     socket.broadcast.emit('new-player', players[socket.id]) // update all other players of the new player
 
