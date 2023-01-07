@@ -61,4 +61,26 @@ export default class GeometryService {
     static rotatePolygonAround(polygon: Polygon, center: Point, angle: number): Polygon {
         return translatePolygonPoints(polygon, (point: Point) => this.rotatePointAround(point, center, angle))
     }
+
+    static pointInsidePolygon(point: Point, polygon: Polygon): boolean {
+        // ray-casting algorithm based on
+        // https://wrf.ecse.rpi.edu/Research/Short_Notes/pnpoly.html/pnpoly.html
+        const {x, y} = point
+
+        let inside = false;
+        const polygonPoints = polygon.points
+        for (let i = 0, j = polygonPoints.length - 1; i < polygonPoints.length; j = i++) {
+            const
+                xi = polygonPoints[i].x,
+                yi = polygonPoints[i].y,
+                xj = polygonPoints[j].x,
+                yj = polygonPoints[j].y;
+
+            const intersect = ((yi > y) != (yj > y))
+                && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+            if (intersect) inside = !inside;
+        }
+
+        return inside;
+    };
 }

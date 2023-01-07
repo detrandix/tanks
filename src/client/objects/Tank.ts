@@ -1,3 +1,4 @@
+import BulletExplode from '../../model/BulletExplode'
 import Player from '../../model/Player'
 import ProgressBar from './ProgressBar'
 
@@ -10,9 +11,10 @@ export default class Tank extends Phaser.GameObjects.Container {
     tweenImmortality: Phaser.Tweens.Tween|null = null
     nameLabel: Phaser.GameObjects.Text
     exhaustAnimation: Phaser.GameObjects.Sprite
+    impactAnimation: Phaser.GameObjects.Sprite
 
     constructor(scene: Phaser.Scene, player: Player) {
-		super(scene, player.x, player.y)
+		super(scene, player.tankModel.center.x, player.tankModel.center.y)
 
         this.tankBody = scene.add
             .sprite(0, 0, 'tank-body-' + player.color)
@@ -36,12 +38,11 @@ export default class Tank extends Phaser.GameObjects.Container {
             .text(0, -80, player.name, {backgroundColor: 'rgba(0, 0, 0, .5)'})
             .setOrigin(0.5, 0)
 
-        this.exhaustAnimation = this.scene.add
-            .sprite(
-                player.tankModel.barrelEndPosition.x,
-                player.tankModel.barrelEndPosition.y,
-                'exhaust0'
-            )
+        this.exhaustAnimation = this.scene.add.sprite(0, 0, 'exhaust0')
+        this.exhaustAnimation.visible = false
+
+        this.impactAnimation = this.scene.add.sprite(0, 0, 'impact0')
+        this.impactAnimation.visible = false
 
         this.add([
             this.tankBody,
@@ -49,6 +50,7 @@ export default class Tank extends Phaser.GameObjects.Container {
             this.hpProgressBar,
             this.nameLabel,
             this.exhaustAnimation,
+            this.impactAnimation,
         ])
 
         this.updateImortality(player)
@@ -107,5 +109,18 @@ export default class Tank extends Phaser.GameObjects.Container {
     setExhaustAnimationPosition(player: Player) {
         this.exhaustAnimation.setPosition(player.tankModel.barrelEndPosition.x, player.tankModel.barrelEndPosition.y)
         this.exhaustAnimation.angle = player.tankModel.turretAngle + 180 // image is upside down
+    }
+
+    // TODO: recompute impactAnimation when tank is turning
+    impact(bulletExplode: BulletExplode, player: Player) {
+        const x = bulletExplode.x - this.x
+        const y = bulletExplode.y - this.y
+        this.impactAnimation.setPosition(x, y)
+        this.impactAnimation.angle = bulletExplode.angle + 180 // image is upside down
+        this.impactAnimation.visible = true
+        this.impactAnimation.play('shot-impact', false)
+        this.impactAnimation.once('animationcomplete', () => {
+            this.impactAnimation.visible = false
+        })
     }
 }

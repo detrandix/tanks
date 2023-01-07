@@ -11,6 +11,8 @@ import BulletFactory from '../services/BulletFactory'
 import WeaponService from '../services/WeaponService'
 import TankFactory from '../services/TankFactory'
 import { EventsEnum } from '../model/EventsEnum'
+import GeometryService from '../services/GeometryService'
+import BulletExplode from '../model/BulletExplode'
 
 const app = express()
 const server = http.createServer(app)
@@ -108,7 +110,7 @@ io.on(EventsEnum.Connection, (socket) => {
 // TODO: maybe slow down after add interpolation to client code
 const UPDATE_INTERVAL = 15
 
-function updateBullet(bullet: Bullet) {
+function updateBullet(bullet: Bullet): Bullet {
     let removedTime = UPDATE_INTERVAL
     if (removedTime > bullet.ttl) {
         removedTime = bullet.ttl
@@ -122,16 +124,45 @@ function updateBullet(bullet: Bullet) {
     }
 }
 
+function bulletHitSomePlayer(bullet: Bullet): Player|null {
+    for (let id in players) {
+        if (bullet.playerId === id) {
+            continue
+        }
+        const player = players[id]
+        if (GeometryService.pointInsidePolygon(bullet, player.tankModel.polygon)) {
+            return player
+        }
+    }
+    return null
+}
+
 setInterval(() => {
+    let emitedBullets = []
     for (let id in bullets) {
         const bullet = updateBullet(bullets[id])
-        if (bullet.ttl > 0) {
+        const hittedPlayer = bulletHitSomePlayer(bullet)
+        if (hittedPlayer !== null) {
+            // TODO something with hitted player
+            io.sockets.emit(
+                EventsEnum.BulletExplode,
+                {
+                    id,
+                    hittedPlayerId: hittedPlayer.playerId,
+                    x: bullet.x,
+                    y: bullet.y,
+                    angle: bullet.angle,
+                } as BulletExplode
+            )
+            delete bullets[id]
+        } else if (bullet.ttl > 0) {
+            emitedBullets.push(bullet)
             bullets[id] = bullet
         } else {
             delete bullets[id]
         }
     }
-    io.sockets.emit(EventsEnum.BulletsUpdate, bullets)
+    io.sockets.emit(EventsEnum.BulletsUpdate, emitedBullets)
 
     for (let id in players) {
         for (let weapon of players[id].weapons) {

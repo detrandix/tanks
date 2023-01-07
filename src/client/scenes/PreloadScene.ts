@@ -37,6 +37,11 @@ export default class Preload extends Phaser.Scene {
         this.load.image('exhaust7', 'assets/Effects/Sprites/Sprite_Effects_Exhaust_01_007.png')
         this.load.image('exhaust8', 'assets/Effects/Sprites/Sprite_Effects_Exhaust_01_008.png')
         this.load.image('exhaust9', 'assets/Effects/Sprites/Sprite_Effects_Exhaust_01_009.png')
+        // shot impact
+        this.load.image('impact0', 'assets/Effects/Sprites/Sprite_Fire_Shots_Impact_A_000.png')
+        this.load.image('impact1', 'assets/Effects/Sprites/Sprite_Fire_Shots_Impact_A_001.png')
+        this.load.image('impact2', 'assets/Effects/Sprites/Sprite_Fire_Shots_Impact_A_002.png')
+        this.load.image('impact3', 'assets/Effects/Sprites/Sprite_Fire_Shots_Impact_A_003.png')
 	}
 
 	create() {
@@ -53,6 +58,18 @@ export default class Preload extends Phaser.Scene {
                 {key: 'exhaust7'},
                 {key: 'exhaust8'},
                 {key: 'exhaust9'},
+            ],
+            frameRate: 16,
+            repeat: 0
+        })
+
+        this.anims.create({
+            key: 'shot-impact',
+            frames: [
+                {key: 'impact0'},
+                {key: 'impact1'},
+                {key: 'impact2'},
+                {key: 'impact3'},
             ],
             frameRate: 16,
             repeat: 0

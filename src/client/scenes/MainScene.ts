@@ -1,5 +1,6 @@
 //import io from 'socket.io-client'
 import Bullet from '../../model/Bullet'
+import BulletExplode from '../../model/BulletExplode'
 import { EventsEnum } from '../../model/EventsEnum'
 import MainSceneData from '../../model/MainSceneData'
 import Player from '../../model/Player'
@@ -21,7 +22,7 @@ export default class MainScene extends Phaser.Scene {
         super('MainScene');
     }
 
-	create({socket, players}: MainSceneData) {
+	create({socket, players}: MainSceneData): void {
         this.socket = socket
 
         if (! (this.socket.id in players)) {
@@ -38,6 +39,7 @@ export default class MainScene extends Phaser.Scene {
         this.socket.on(EventsEnum.RemovePlayer, (id: string) => this.onRemovePlayer(id))
         this.socket.on(EventsEnum.PlayerUpdate, (player: Player) => this.onPlayerUpdate(player))
         this.socket.on(EventsEnum.BulletsUpdate, (bullets: Record<string, Bullet>) => this.onBulletsUpdate(bullets))
+        this.socket.on(EventsEnum.BulletExplode, (bulletExplode: BulletExplode) => this.onBulletExplode(bulletExplode))
 
         this.cursorKeys = this.input.keyboard.addKeys({
             up: Phaser.Input.Keyboard.KeyCodes.UP,
@@ -55,7 +57,7 @@ export default class MainScene extends Phaser.Scene {
         this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => this.onMouseMove(pointer))
 	}
 
-    loadInitSituation(players: Record<string, Player>) {
+    loadInitSituation(players: Record<string, Player>): void {
         this.background = this.add.tileSprite(0, 0, this.cameras.main.width, this.cameras.main.height, 'background')
             .setTileScale(.5, .5)
             .setScrollFactor(0)
@@ -81,7 +83,7 @@ export default class MainScene extends Phaser.Scene {
         }
     }
 
-    onMouseClick(pointer: Phaser.Input.Pointer) {
+    onMouseClick(pointer: Phaser.Input.Pointer): void {
         if (pointer.leftButtonDown()) {
             this.socket.emit(EventsEnum.Fire, 0)
         } else if (pointer.rightButtonDown()) {
@@ -89,7 +91,7 @@ export default class MainScene extends Phaser.Scene {
         }
     }
 
-    onMouseMove(pointer: Phaser.Input.Pointer) {
+    onMouseMove(pointer: Phaser.Input.Pointer): void {
         if (this.lastMousePosition === null) {
             this.lastMousePosition = {
                 x: pointer.worldX,
@@ -125,7 +127,7 @@ export default class MainScene extends Phaser.Scene {
         }
     }
 
-    createTank(player: Player) {
+    createTank(player: Player): {entity: Tank, player: Player} {
         const entity = new Tank(this, player)
         this.add.existing(entity)
 
@@ -137,22 +139,22 @@ export default class MainScene extends Phaser.Scene {
         return data
     }
 
-    onNewPlayer(player: Player) {
+    onNewPlayer(player: Player): void {
         this.createTank(player)
     }
 
-    onPlayerMoved(player: Player) {
+    onPlayerMoved(player: Player): void {
         this.updateTank(player)
     }
 
-    onRemovePlayer(id: string) {
+    onRemovePlayer(id: string): void {
         if (id in this.tanks) {
             this.tanks[id].entity.destroy()
             delete this.tanks[id]
         }
     }
 
-    onPlayerUpdate(player: Player) {
+    onPlayerUpdate(player: Player): void {
         if (player.playerId in this.tanks) {
             this.tanks[player.playerId].player = player
             for (let i=0; i<player.weapons.length; i++) {
@@ -167,7 +169,7 @@ export default class MainScene extends Phaser.Scene {
         }
     }
 
-    onBulletsUpdate(bullets: Record<string, Bullet>) {
+    onBulletsUpdate(bullets: Record<string, Bullet>): void {
         for (let id in bullets) {
             if (id in this.bullets) {
                 // update
@@ -199,14 +201,18 @@ export default class MainScene extends Phaser.Scene {
         }
     }
 
-    updateBackground(player: Player, playerOld: Player) {
+    onBulletExplode(bulletExplode: BulletExplode): void {
+        this.tanks[bulletExplode.hittedPlayerId].entity.impact(bulletExplode, this.tanks[bulletExplode.hittedPlayerId])
+    }
+
+    updateBackground(player: Player, playerOld: Player): void {
         const diffX = player.tankModel.center.x - playerOld.tankModel.center.x
         const diffY = player.tankModel.center.y - playerOld.tankModel.center.y
         this.background.tilePositionX += diffX / this.background.tileScaleX
         this.background.tilePositionY += diffY / this.background.tileScaleY
     }
 
-    updateTank(player: Player) {
+    updateTank(player: Player): void {
         if (! player.playerId in this.tanks) {
             return
         }
@@ -219,7 +225,7 @@ export default class MainScene extends Phaser.Scene {
         this.tanks[player.playerId].player = player
     }
 
-	update() {
+	update(): void {
         if (this.socket.id in this.tanks) {
             const tank = this.tanks[this.socket.id]
 

@@ -6,6 +6,7 @@ export enum EventsEnum {
     BulletsUpdate = 'bullets-player',
     PlayerUpdate = 'update-player',
     PlayerMoved = 'player-moved',
+    BulletExplode = 'bullet-explode',
     // revieved states
     Connection = 'connection',
     BodyRotateLeft = 'body-rotate-left',
