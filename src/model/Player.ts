@@ -13,4 +13,5 @@ export default interface Player {
     timeToReload: TimeToReload|null,
     hp: number,
     maxHp: number,
+    immortalityTtl: number|null,
 }

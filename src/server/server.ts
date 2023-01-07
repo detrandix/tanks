@@ -58,6 +58,7 @@ io.on('connection', (socket) => {
         timeToReload: null,
         hp: 100,
         maxHp: 100,
+        immortalityTtl: 3000
     }
     socket.emit('init-state', players) // send the players object to the new player
     socket.broadcast.emit('new-player', players[socket.id]) // update all other players of the new player
@@ -161,7 +162,15 @@ setInterval(() => {
             } else {
                 players[id].timeToReload.ttl -= UPDATE_INTERVAL
             }
-            sockets[id].emit('update-player', players[id])
         }
+        if (players[id].immortalityTtl !== null) {
+            if (players[id].immortalityTtl <= UPDATE_INTERVAL) {
+                players[id].immortalityTtl = null
+            } else {
+                players[id].immortalityTtl -= UPDATE_INTERVAL
+            }
+        }
+        // TODO: emit every time or only if there is change prom last emit?
+        sockets[id].emit('update-player', players[id])
     }
 }, UPDATE_INTERVAL)

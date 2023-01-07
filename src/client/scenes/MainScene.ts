@@ -33,30 +33,26 @@ export default class MainScene extends Phaser.Scene {
 	create({socket, players}: MainSceneData) {
         this.socket = socket
 
+        if (! (this.socket.id in players)) {
+            throw "server error" // TODO: probably reload socket connection?
+        }
+
+        // look for mouse position permanent
         this.input.setPollAlways()
 
         this.background = this.add.tileSprite(0, 0, this.cameras.main.width, this.cameras.main.height, 'background')
             .setTileScale(.5, .5)
             .setScrollFactor(0)
 
+        this.leftWeapon = new WeaponIndicator(this, 100, 100, 'heavy-shell')
+        this.add.existing(this.leftWeapon)
+        this.rightWeapon = new WeaponIndicator(this, 300, 100, 'granade-shell')
+        this.add.existing(this.rightWeapon)
+
         for (let id in players) {
             if (this.socket.id === id) {
-                this.leftWeapon = new WeaponIndicator(this, 100, 100, 'heavy-shell')
-                this.add.existing(this.leftWeapon)
-                this.rightWeapon = new WeaponIndicator(this, 300, 100, 'granade-shell')
-                this.add.existing(this.rightWeapon)
-
                 const tank = this.createTank(players[id])
-                // nesmrtelnost - TODO
-                this.tweens.add({
-                    targets: [tank.entity],
-                    ease: 'Sine.easeInOut',
-                    duration: 300,
-                    delay: 50,
-                    repeat: -1,
-                    yoyo: true,
-                    alpha: 0.8,
-                })
+
                 this.cameras.main.startFollow(tank.entity)
                 this.cameras.main.setFollowOffset(-this.cameras.main.centerX/2, -this.cameras.main.centerY/2)
                 // initial centerinf of map
@@ -168,7 +164,7 @@ export default class MainScene extends Phaser.Scene {
             this.updateBackground(player, this.state.tanks[player.playerId].player)
         }
 
-        this.state.tanks[player.playerId].entity.move(player)
+        this.state.tanks[player.playerId].entity.update(player)
         this.state.tanks[player.playerId].player = player
     }
 
