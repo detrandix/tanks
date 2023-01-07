@@ -7,6 +7,7 @@ import path from 'path'
 import compression from 'compression'
 import Player from '../model/Player'
 import Bullet from '../model/Bullet'
+import TankModel from '../model/TankModel'
 
 const app = express()
 const server = http.createServer(app)
@@ -42,56 +43,68 @@ Array.prototype.random = function () {
 }
 const tankColors = ['brown', 'green', 'cyan', 'blue']
 
-io.on('connection', (socket) => {
-    console.log(`A user #${socket.id} just connected.`)
-    sockets[socket.id] = socket
-    players[socket.id] = {
+function createTank(playerId: string): Player {
+    const x = Math.floor(Math.random() * 300) + 200
+    const y = Math.floor(Math.random() * 300) + 200
+    return {
         connected: Date.now(),
         lastAction: Date.now(),
-        bodyRotation: 0,
-        turretRotation: 0,
-        x: Math.floor(Math.random() * 300) + 200,
-        y: Math.floor(Math.random() * 300) + 200,
-        playerId: socket.id,
-        name: 'Player' + socket.id,
+        playerId: playerId,
+        name: 'Player' + playerId,
         color: tankColors.random(),
         timeToReload: null,
         hp: 100,
         maxHp: 100,
-        immortalityTtl: 3000
+        immortalityTtl: 3000,
+        tankModel: new TankModel(
+            {x, y},
+            164,
+            256,
+            0,
+            50,
+            0,
+            {x: 0.5, y: 0.8},
+        ), // TODO move constant to some TankFactory
     }
+}
+
+io.on('connection', (socket) => {
+    console.log(`A user #${socket.id} just connected.`)
+    sockets[socket.id] = socket
+    players[socket.id] = createTank(socket.id)
     socket.emit('init-state', players) // send the players object to the new player
     socket.broadcast.emit('new-player', players[socket.id]) // update all other players of the new player
 
     socket.on('body-rotate-left', () => {
-        players[socket.id].bodyRotation -= 1
+        players[socket.id].tankModel.addRotation(-1)
         players[socket.id].lastAction = Date.now()
         io.sockets.emit('player-moved', players[socket.id])
     })
 
     socket.on('body-rotate-right', () => {
-        players[socket.id].bodyRotation += 1
+        players[socket.id].tankModel.addRotation(1)
         players[socket.id].lastAction = Date.now()
         io.sockets.emit('player-moved', players[socket.id])
     })
 
-    socket.on('move-up', () => {
-        players[socket.id].x += Math.cos(deg2rad(players[socket.id].bodyRotation - 90))
-        players[socket.id].y += Math.sin(deg2rad(players[socket.id].bodyRotation - 90))
+    socket.on('move-up', () => { // TODO: move-forward
+        players[socket.id].tankModel.move(1)
         players[socket.id].lastAction = Date.now()
         io.sockets.emit('player-moved', players[socket.id])
     })
 
     socket.on('move-down', () => {
-        players[socket.id].x -= Math.cos(deg2rad(players[socket.id].bodyRotation - 90))
-        players[socket.id].y -= Math.sin(deg2rad(players[socket.id].bodyRotation - 90))
+        players[socket.id].tankModel.move(-1)
         players[socket.id].lastAction = Date.now()
         io.sockets.emit('player-moved', players[socket.id])
     })
 
-    socket.on('turret-rotate', (targetAngle: number) => {
-        const diff = (players[socket.id].turretRotation - 90) - targetAngle
-        players[socket.id].turretRotation -= diff // TODO: emit step by step
+    socket.on('turret-rotate', (angleDiff: number) => {
+        if (angleDiff > -.1 && angleDiff < 0.1) {
+            return
+        }
+
+        players[socket.id].tankModel.addTurretRotation(angleDiff)
         players[socket.id].lastAction = Date.now()
         io.sockets.emit('player-moved', players[socket.id])
     })
@@ -104,9 +117,9 @@ io.on('connection', (socket) => {
         const id = uuid()
         fires[id] = {
             id,
-            x: players[socket.id].x,
-            y: players[socket.id].y,
-            angle: players[socket.id].turretRotation,
+            x: players[socket.id].tankModel.center.x,
+            y: players[socket.id].tankModel.center.y,
+            angle: players[socket.id].tankModel.turretAngle,
             created: Date.now(),
             ttl: 1000,
             speed: 1, // px / ms

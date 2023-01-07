@@ -2,6 +2,7 @@ import io from 'socket.io-client'
 import Bullet from '../../model/Bullet';
 import MainSceneData from '../../model/MainSceneData';
 import Player from '../../model/Player';
+import Point from '../../model/Point';
 import Tank from '../objects/Tank'
 import WeaponIndicator from '../objects/WeaponIndicator'
 
@@ -13,8 +14,9 @@ export default class MainScene extends Phaser.Scene {
     cursorKeys: object;
 
     state: {
-        tanks: Record<string, {entity: Tank, player: Player}>;
-        fires: Record<string, Bullet>;
+        tanks: Record<string, {entity: Tank, player: Player}>,
+        fires: Record<string, Bullet>,
+        lastMousePosition: Point|null
     };
 
     constructor() {
@@ -25,6 +27,7 @@ export default class MainScene extends Phaser.Scene {
             tanks: {},
             // TODO: renmate to bullets
             fires: {},
+            lastMousePosition: null,
         }
         this.leftWeapon = null
         this.rightWeapon = null
@@ -37,7 +40,6 @@ export default class MainScene extends Phaser.Scene {
             throw "server error" // TODO: probably reload socket connection?
         }
 
-        // look for mouse position permanent
         this.input.setPollAlways()
 
         this.background = this.add.tileSprite(0, 0, this.cameras.main.width, this.cameras.main.height, 'background')
@@ -55,9 +57,8 @@ export default class MainScene extends Phaser.Scene {
 
                 this.cameras.main.startFollow(tank.entity)
                 this.cameras.main.setFollowOffset(-this.cameras.main.centerX/2, -this.cameras.main.centerY/2)
-                // initial centerinf of map
-                this.background.tilePositionX = players[id].x / this.background.tileScaleX
-                this.background.tilePositionY = players[id].y / this.background.tileScaleY
+                this.background.tilePositionX = players[id].tankModel.center.x / this.background.tileScaleX
+                this.background.tilePositionY = players[id].tankModel.center.y / this.background.tileScaleY
             } else {
                 this.createTank(players[id])
             }
@@ -129,12 +130,51 @@ export default class MainScene extends Phaser.Scene {
             space: Phaser.Input.Keyboard.KeyCodes.SPACE,
         })
 
-        this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-            if (pointer.leftButtonDown()) {
-                this.socket.emit('fire')
-            }
-        })
+        this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => this.onMouseClick(pointer))
+        this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => this.onMouseMove(pointer))
 	}
+
+    onMouseClick(pointer: Phaser.Input.Pointer) {
+        if (pointer.leftButtonDown()) {
+            this.socket.emit('fire')
+        }
+    }
+
+    onMouseMove(pointer: Phaser.Input.Pointer) {
+        if (this.state.lastMousePosition === null) {
+            this.state.lastMousePosition = {
+                x: pointer.worldX,
+                y: pointer.worldY,
+            }
+            return
+        }
+
+        const tankModel = this.state.tanks[this.socket.id].player.tankModel
+
+        const prevAngleToPointer = Phaser.Math.RadToDeg(Phaser.Math.Angle.Between(
+            tankModel.center.x + tankModel.turretPosition.x,
+            tankModel.center.y + tankModel.turretPosition.y,
+            this.state.lastMousePosition.x,
+            this.state.lastMousePosition.y
+        )) + 90
+
+        const angleToPointer = Phaser.Math.RadToDeg(Phaser.Math.Angle.Between(
+            tankModel.center.x + tankModel.turretPosition.x,
+            tankModel.center.y + tankModel.turretPosition.y,
+            pointer.worldX,
+            pointer.worldY
+        )) + 90
+
+        this.socket.emit('turret-rotate', Phaser.Math.Angle.ShortestBetween(
+            prevAngleToPointer,
+            angleToPointer
+        ))
+
+        this.state.lastMousePosition = {
+            x: pointer.worldX,
+            y: pointer.worldY,
+        }
+    }
 
     createTank(player: Player) {
         const entity = new Tank(this, player)
@@ -149,8 +189,8 @@ export default class MainScene extends Phaser.Scene {
     }
 
     updateBackground(player: Player, playerOld: Player) {
-        const diffX = player.x - playerOld.x
-        const diffY = player.y - playerOld.y
+        const diffX = player.tankModel.center.x - playerOld.tankModel.center.x
+        const diffY = player.tankModel.center.y - playerOld.tankModel.center.y
         this.background.tilePositionX += diffX / this.background.tileScaleX
         this.background.tilePositionY += diffY / this.background.tileScaleY
     }
@@ -184,22 +224,6 @@ export default class MainScene extends Phaser.Scene {
             } else if (this.cursorKeys.down.isDown || this.cursorKeys.s.isDown) {
                 this.socket.emit('move-down')
             }
-
-            //console.log([this.input.activePointer.worldX, this.input.activePointer.worldY])
-
-            const newTurretAngle = Phaser.Math.Angle.Between(
-                tank.player.x - 50 * Math.cos(Phaser.Math.DegToRad(tank.player.bodyRotation - 90)),
-                tank.player.y - 50 * Math.sin(Phaser.Math.DegToRad(tank.player.bodyRotation - 90)),
-                this.input.activePointer.worldX,
-                this.input.activePointer.worldY
-            )
-            // TODO: emit only if there is change in angle
-            this.socket.emit('turret-rotate', Phaser.Math.RadToDeg(newTurretAngle))
-
-            //if (this.cursorKeys.space.down) {
-            //    console.log('XXX')
-            //    this.socket.emit('fire')
-            //}
         }
 	}
 }

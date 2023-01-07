@@ -1,12 +1,9 @@
+import TankModel from './TankModel';
 import TimeToReload from './TimeToReload';
 
 export default interface Player {
     connected: number,
     lastAction: number,
-    bodyRotation: number,
-    turretRotation: number,
-    x: number,
-    y: number,
     playerId: string,
     name: string,
     color: string, // enum
@@ -14,4 +11,5 @@ export default interface Player {
     hp: number,
     maxHp: number,
     immortalityTtl: number|null,
+    tankModel: TankModel,
 }

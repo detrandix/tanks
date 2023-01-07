@@ -16,15 +16,17 @@ export default class Tank extends Phaser.GameObjects.Container {
         this.tankBody = scene.add
             .sprite(0, 0, 'tank-body-' + player.color)
             .setOrigin(0.5, 0.5)
-            .setSize(164, 256)
+            .setSize(player.tankModel.width, player.tankModel.height)
+        this.tankBody.angle = player.tankModel.angle
 
         this.tankTurret = scene.add
             .sprite(
-                // TODO - make this somehow better
-                50 * Math.cos(Phaser.Math.DegToRad(player.bodyRotation + 90)),
-                50 * Math.sin(Phaser.Math.DegToRad(player.bodyRotation + 90)),
-                'tank-turret-' + player.color)
-            .setOrigin(0.5, 0.8)
+                player.tankModel.turretPosition.x,
+                player.tankModel.turretPosition.y,
+                'tank-turret-' + player.color
+            )
+            .setOrigin(player.tankModel.turretOrigin.x, player.tankModel.turretOrigin.y)
+        this.tankTurret.angle = player.tankModel.turretAngle
 
         this.hpProgressBar = new ProgressBar(scene, 0, -100, 100, 10)
         scene.add.existing(this.hpProgressBar)
@@ -50,17 +52,17 @@ export default class Tank extends Phaser.GameObjects.Container {
     }
 
     move(player: Player) {
-        this.x = player.x
-        this.y = player.y
+        this.x = player.tankModel.center.x
+        this.y = player.tankModel.center.y
 
-        if (this.tankBody.angle !== player.bodyRotation) {
-            this.tankBody.angle = player.bodyRotation
+        if (this.tankBody.angle !== player.tankModel.angle) {
+            this.tankBody.angle = player.tankModel.angle
 
-            this.tankTurret.x = 50 * Math.cos(Phaser.Math.DegToRad(player.bodyRotation + 90))
-            this.tankTurret.y = 50 * Math.sin(Phaser.Math.DegToRad(player.bodyRotation + 90))
+            this.tankTurret.x = player.tankModel.turretPosition.x
+            this.tankTurret.y = player.tankModel.turretPosition.y
         }
 
-        this.tankTurret.angle = player.turretRotation
+        this.tankTurret.angle = player.tankModel.turretAngle
     }
 
     updateImortality(player: Player) {
