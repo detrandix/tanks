@@ -95,7 +95,7 @@ io.on(EventsEnum.Connection, (socket) => {
         bullets[id] = BulletFactory.create(id, socket.id, player.weapons[index].type, player.tankModel)
         player.weapons[index].timeToReload = WeaponService.getTimeToReload(player.weapons[index].type)
         player.lastAction = Date.now()
-        io.sockets.emit(EventsEnum.BulletsUpdate, bullets)
+        // this bullet will be proceeed in main loop - TODO: is this good solution?
     })
 
     socket.on(EventsEnum.Disconnected, () => {

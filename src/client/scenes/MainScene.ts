@@ -16,7 +16,7 @@ export default class MainScene extends Phaser.Scene {
     lastMousePosition: Point|null = null
 
     tanks: Record<string, {entity: Tank, player: Player}> = {}
-    bullets: Record<string, {entity: Phaser.GameObjects.TileSprite, data: Bullet}> = {}
+    bullets: Record<string, {entity: Phaser.GameObjects.Sprite, data: Bullet}> = {}
 
     constructor() {
         super('MainScene');
@@ -183,8 +183,6 @@ export default class MainScene extends Phaser.Scene {
                 this.bullets[id].data = bullets[id]
             } else {
                 // create
-                this.tanks[bullets[id].playerId].entity.visible
-                this.tanks[bullets[id].playerId].entity.exhaust(this.tanks[bullets[id].playerId].player)
                 const fire = this.add
                     .sprite(bullets[id].x, bullets[id].y, bullets[id].type)
                     .setOrigin(0.5, 0.5)
@@ -194,6 +192,7 @@ export default class MainScene extends Phaser.Scene {
                     entity: fire,
                     data: bullets[id]
                 }
+                this.tanks[bullets[id].playerId].entity.exhaust(this.tanks[bullets[id].playerId].player, bullets[id], this.tanks[this.socket.id].player)
             }
         }
         for (let id in this.bullets) {
@@ -206,7 +205,11 @@ export default class MainScene extends Phaser.Scene {
     }
 
     onBulletExplode(bulletExplode: BulletExplode): void {
-        this.tanks[bulletExplode.hittedPlayerId].entity.impact(bulletExplode, this.tanks[bulletExplode.hittedPlayerId])
+        this.tanks[bulletExplode.hittedPlayerId].entity.impact(
+            bulletExplode,
+            this.tanks[bulletExplode.hittedPlayerId].player,
+            this.tanks[this.socket.id].player
+        )
     }
 
     updateBackground(player: Player, playerOld: Player): void {

@@ -42,6 +42,10 @@ export default class Preload extends Phaser.Scene {
         this.load.image('impact1', 'assets/Effects/Sprites/Sprite_Fire_Shots_Impact_A_001.png')
         this.load.image('impact2', 'assets/Effects/Sprites/Sprite_Fire_Shots_Impact_A_002.png')
         this.load.image('impact3', 'assets/Effects/Sprites/Sprite_Fire_Shots_Impact_A_003.png')
+        // music
+        this.load.audio('heavy-shot', 'assets/music/heavy-shot.wav')
+        this.load.audio('granade-shot', 'assets/music/granade-shot.wav')
+        this.load.audio('hit', 'assets/music/hit.wav')
 	}
 
 	create() {

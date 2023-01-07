@@ -1,8 +1,25 @@
+import Bullet from '../../model/Bullet'
 import BulletExplode from '../../model/BulletExplode'
 import Player from '../../model/Player'
+import { WeaponsEnum } from '../../model/WeaponsEnum'
 import ProgressBar from './ProgressBar'
 
 const TWEEN_IMORTALITY_DURATION = 300
+const SOUND_DISTANCE = 1000
+
+const playDistanceSound = (sound: Phaser.Sound.BaseSound, player: Player, actualPlayer: Player) => {
+    const playersDistance = Phaser.Math.Distance.Between(
+        player.tankModel.center.x,
+        player.tankModel.center.y,
+        actualPlayer.tankModel.center.x,
+        actualPlayer.tankModel.center.y
+    )
+
+    let normalizedVolume = 1 - (playersDistance / SOUND_DISTANCE)
+    if (normalizedVolume > 0) {
+        sound.play({volume: normalizedVolume})
+    }
+}
 
 export default class Tank extends Phaser.GameObjects.Container {
     tankBody: Phaser.GameObjects.Sprite
@@ -12,6 +29,9 @@ export default class Tank extends Phaser.GameObjects.Container {
     nameLabel: Phaser.GameObjects.Text
     exhaustAnimation: Phaser.GameObjects.Sprite
     impactAnimation: Phaser.GameObjects.Sprite
+    exhaustHeavySound: Phaser.Sound.BaseSound
+    exhaustGranadeSound: Phaser.Sound.BaseSound
+    impactSound: Phaser.Sound.BaseSound
 
     constructor(scene: Phaser.Scene, player: Player) {
 		super(scene, player.tankModel.center.x, player.tankModel.center.y)
@@ -43,6 +63,10 @@ export default class Tank extends Phaser.GameObjects.Container {
 
         this.impactAnimation = this.scene.add.sprite(0, 0, 'impact0')
         this.impactAnimation.visible = false
+
+        this.exhaustHeavySound = this.scene.sound.add('heavy-shot', {loop: false})
+        this.exhaustGranadeSound = this.scene.sound.add('granade-shot', {loop: false})
+        this.impactSound = this.scene.sound.add('hit', {loop: false})
 
         this.add([
             this.tankBody,
@@ -98,13 +122,24 @@ export default class Tank extends Phaser.GameObjects.Container {
         }
     }
 
-    exhaust(player: Player) {
+    getSoundForWeapon(weapon: WeaponsEnum): Phaser.Sound.BaseSound {
+        switch (weapon as WeaponsEnum) {
+            case WeaponsEnum.Heavy: return this.exhaustHeavySound
+            case WeaponsEnum.Granade: return this.exhaustGranadeSound
+            default: throw `Unknown reapon ${weapon}`
+        }
+    }
+
+    exhaust(player: Player, bullet: Bullet, actualPlayer: Player) {
         this.setExhaustAnimationPosition(player)
         this.exhaustAnimation.visible = true
         this.exhaustAnimation.play('exhaust', false)
         this.exhaustAnimation.once('animationcomplete', () => {
             this.exhaustAnimation.visible = false
         })
+
+        const sound = this.getSoundForWeapon(bullet.type)
+        playDistanceSound(sound, player, actualPlayer)
     }
 
     setExhaustAnimationPosition(player: Player) {
@@ -113,7 +148,7 @@ export default class Tank extends Phaser.GameObjects.Container {
     }
 
     // TODO: recompute impactAnimation when tank is turning
-    impact(bulletExplode: BulletExplode, player: Player) {
+    impact(bulletExplode: BulletExplode, player: Player, actualPlayer: Player) {
         const x = bulletExplode.x - this.x
         const y = bulletExplode.y - this.y
         this.impactAnimation.setPosition(x, y)
@@ -123,5 +158,7 @@ export default class Tank extends Phaser.GameObjects.Container {
         this.impactAnimation.once('animationcomplete', () => {
             this.impactAnimation.visible = false
         })
+
+        playDistanceSound(this.impactSound, player, actualPlayer)
     }
 }
