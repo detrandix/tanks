@@ -10,6 +10,7 @@ import Bullet from '../model/Bullet'
 import BulletFactory from '../services/BulletFactory'
 import WeaponService from '../services/WeaponService'
 import TankFactory from '../services/TankFactory'
+import { EventsEnum } from '../model/EventsEnum'
 
 const app = express()
 const server = http.createServer(app)
@@ -31,7 +32,7 @@ server.listen(port, () => {
 
 const players: Record<string, Player> = {}
 const sockets = {}
-const fires: Record<string, Bullet> = {}
+const bullets: Record<string, Bullet> = {}
 
 const DEG2RAD = Math.PI/180
 const deg2rad = (deg: number) => deg * DEG2RAD
@@ -40,48 +41,48 @@ function uuid() {
     return crypto.randomUUID()
 }
 
-io.on('connection', (socket) => {
+io.on(EventsEnum.Connection, (socket) => {
     console.log(`A user #${socket.id} just connected.`)
     sockets[socket.id] = socket
     players[socket.id] = TankFactory.create(socket.id)
-    socket.emit('init-state', players) // send the players object to the new player
-    socket.broadcast.emit('new-player', players[socket.id]) // update all other players of the new player
+    socket.emit(EventsEnum.InitState, players) // send the players object to the new player
+    socket.broadcast.emit(EventsEnum.NewPlayer, players[socket.id]) // update all other players of the new player
 
-    socket.on('body-rotate-left', () => {
+    socket.on(EventsEnum.BodyRotateLeft, () => {
         players[socket.id].tankModel.addRotation(-1)
         players[socket.id].lastAction = Date.now()
-        io.sockets.emit('player-moved', players[socket.id])
+        io.sockets.emit(EventsEnum.PlayerMoved, players[socket.id])
     })
 
-    socket.on('body-rotate-right', () => {
+    socket.on(EventsEnum.BodyRotateRight, () => {
         players[socket.id].tankModel.addRotation(1)
         players[socket.id].lastAction = Date.now()
-        io.sockets.emit('player-moved', players[socket.id])
+        io.sockets.emit(EventsEnum.PlayerMoved, players[socket.id])
     })
 
-    socket.on('move-up', () => { // TODO: move-forward
+    socket.on(EventsEnum.MoveForward, () => { // TODO: move-forward
         players[socket.id].tankModel.move(1)
         players[socket.id].lastAction = Date.now()
-        io.sockets.emit('player-moved', players[socket.id])
+        io.sockets.emit(EventsEnum.PlayerMoved, players[socket.id])
     })
 
-    socket.on('move-down', () => {
+    socket.on(EventsEnum.MoveBackward, () => {
         players[socket.id].tankModel.move(-1)
         players[socket.id].lastAction = Date.now()
-        io.sockets.emit('player-moved', players[socket.id])
+        io.sockets.emit(EventsEnum.PlayerMoved, players[socket.id])
     })
 
-    socket.on('turret-rotate', (angleDiff: number) => {
+    socket.on(EventsEnum.TurretRotate, (angleDiff: number) => {
         if (angleDiff > -.1 && angleDiff < 0.1) {
             return
         }
 
         players[socket.id].tankModel.addTurretRotation(angleDiff)
         players[socket.id].lastAction = Date.now()
-        io.sockets.emit('player-moved', players[socket.id])
+        io.sockets.emit(EventsEnum.PlayerMoved, players[socket.id])
     })
 
-    socket.on('fire', (index) => {
+    socket.on(EventsEnum.Fire, (index) => {
         const player = players[socket.id]
 
         if (player.weapons[index] === undefined || player.weapons[index].timeToReload !== null) {
@@ -89,17 +90,17 @@ io.on('connection', (socket) => {
         }
 
         const id = uuid()
-        fires[id] = BulletFactory.create(id, player.weapons[index].type, player.tankModel)
+        bullets[id] = BulletFactory.create(id, player.weapons[index].type, player.tankModel)
         player.weapons[index].timeToReload = WeaponService.getTimeToReload(player.weapons[index].type)
         player.lastAction = Date.now()
-        io.sockets.emit('fires', fires)
+        io.sockets.emit(EventsEnum.BulletsUpdate, bullets)
     })
 
-    socket.on('disconnect', () => {
+    socket.on(EventsEnum.Disconnected, () => {
         console.log(`A user #${socket.id} has disconnected.`);
         delete players[socket.id]
         delete sockets[socket.id]
-        io.emit('remove-player', socket.id)
+        io.emit(EventsEnum.RemovePlayer, socket.id)
     })
 })
 
@@ -107,30 +108,30 @@ io.on('connection', (socket) => {
 // TODO: maybe slow down after add interpolation to client code
 const UPDATE_INTERVAL = 15
 
-function updateFire(fire: Bullet) {
+function updateBullet(bullet: Bullet) {
     let removedTime = UPDATE_INTERVAL
-    if (removedTime > fire.ttl) {
-        removedTime = fire.ttl
+    if (removedTime > bullet.ttl) {
+        removedTime = bullet.ttl
     }
-    const move = fire.speed * removedTime
+    const move = bullet.speed * removedTime
     return {
-        ...fire,
-        ttl: fire.ttl - removedTime,
-        x: fire.x + move * Math.cos(deg2rad(fire.angle - 90)),
-        y: fire.y + move * Math.sin(deg2rad(fire.angle - 90)),
+        ...bullet,
+        ttl: bullet.ttl - removedTime,
+        x: bullet.x + move * Math.cos(deg2rad(bullet.angle - 90)),
+        y: bullet.y + move * Math.sin(deg2rad(bullet.angle - 90)),
     }
 }
 
 setInterval(() => {
-    for (let id in fires) {
-        const fire = updateFire(fires[id])
-        if (fire.ttl > 0) {
-            fires[id] = fire
+    for (let id in bullets) {
+        const bullet = updateBullet(bullets[id])
+        if (bullet.ttl > 0) {
+            bullets[id] = bullet
         } else {
-            delete fires[id]
+            delete bullets[id]
         }
     }
-    io.sockets.emit('fires', fires)
+    io.sockets.emit(EventsEnum.BulletsUpdate, bullets)
 
     for (let id in players) {
         for (let weapon of players[id].weapons) {
@@ -151,6 +152,6 @@ setInterval(() => {
             }
         }
         // TODO: emit every time or only if there is change prom last emit?
-        sockets[id].emit('update-player', players[id])
+        sockets[id].emit(EventsEnum.PlayerUpdate, players[id])
     }
 }, UPDATE_INTERVAL)
