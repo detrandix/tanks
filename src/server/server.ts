@@ -143,7 +143,8 @@ setInterval(() => {
         const bullet = updateBullet(bullets[id])
         const hittedPlayer = bulletHitSomePlayer(bullet)
         if (hittedPlayer !== null) {
-            // TODO something with hitted player
+            hittedPlayer.hp -= bullet.damage
+            // TODO solve death player
             io.sockets.emit(
                 EventsEnum.BulletExplode,
                 {
@@ -153,6 +154,10 @@ setInterval(() => {
                     y: bullet.y,
                     angle: bullet.angle,
                 } as BulletExplode
+            )
+            io.sockets.emit(
+                EventsEnum.PlayerUpdate,
+                hittedPlayer
             )
             delete bullets[id]
         } else if (bullet.ttl > 0) {

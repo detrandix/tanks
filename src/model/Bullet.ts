@@ -10,4 +10,5 @@ export default interface Bullet {
     ttl: number,
     speed: number, // px / ms
     type: WeaponsEnum,
+    damage: number,
 }

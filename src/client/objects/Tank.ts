@@ -60,6 +60,7 @@ export default class Tank extends Phaser.GameObjects.Container {
         this.move(player)
         this.updateImortality(player)
         this.nameLabel.setText(player.name)
+        this.hpProgressBar.progress(player.hp / player.maxHp)
     }
 
     move(player: Player) {

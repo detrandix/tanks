@@ -155,16 +155,20 @@ export default class MainScene extends Phaser.Scene {
     }
 
     onPlayerUpdate(player: Player): void {
-        if (player.playerId in this.tanks) {
-            this.tanks[player.playerId].player = player
-            for (let i=0; i<player.weapons.length; i++) {
-                // TODO: check if there is more/less weapons
-                const timeToReload = player.weapons[i].timeToReload
-                if (timeToReload) {
-                    this.weaponIndicators[i].setTimeToReload((timeToReload.total - timeToReload.ttl) / timeToReload.total)
-                } else {
-                    this.weaponIndicators[i].setTimeToReload(1)
-                }
+        if (! (player.playerId in this.tanks)) {
+            return
+        }
+
+        // TODO: do this only in one place
+        this.tanks[player.playerId].entity.update(player)
+        this.tanks[player.playerId].player = player
+        for (let i=0; i<player.weapons.length; i++) {
+            // TODO: check if there is more/less weapons
+            const timeToReload = player.weapons[i].timeToReload
+            if (timeToReload) {
+                this.weaponIndicators[i].setTimeToReload((timeToReload.total - timeToReload.ttl) / timeToReload.total)
+            } else {
+                this.weaponIndicators[i].setTimeToReload(1)
             }
         }
     }
