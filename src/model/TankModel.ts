@@ -6,6 +6,10 @@ const computeTurretPosition = (turretYOffset: number, tankAngle: number): Point 
     return GeometryService.movePoint({x: 0, y: 0}, GeometryService.deg2rad(tankAngle + 90), turretYOffset)
 }
 
+const computeBarrelEndPosition = (barrelEndYOffset: number, turretPosition: Point, turretAngle: number): Point => {
+    return GeometryService.movePoint(turretPosition, GeometryService.deg2rad(turretAngle + 90), barrelEndYOffset)
+}
+
 export default class TankModel {
     center: Point
     width: number
@@ -16,6 +20,8 @@ export default class TankModel {
     turretAngle: number
     turretPosition: Point
     turretOrigin: Point
+    barrelEndYOffset: number
+    barrelEndPosition: Point
 
     constructor(
         center: Point,
@@ -24,7 +30,8 @@ export default class TankModel {
         angle: number,
         turretYOffset: number,
         turretAngle: number,
-        turretOrigin: Point
+        turretOrigin: Point,
+        barrelEndYOffset: number,
     ) {
         this.center = center
         this.width = width
@@ -33,6 +40,7 @@ export default class TankModel {
         this.turretYOffset = turretYOffset
         this.turretAngle = turretAngle
         this.turretOrigin = turretOrigin
+        this.barrelEndYOffset = barrelEndYOffset
         this.polygon = new Polygon([
             {x: center.x - width/2, y: center.y - height/2},
             {x: center.x + width/2, y: center.y - height/2},
@@ -40,6 +48,7 @@ export default class TankModel {
             {x: center.x - width/2, y: center.y + height/2},
         ])
         this.turretPosition = computeTurretPosition(this.turretYOffset, this.angle)
+        this.barrelEndPosition = computeBarrelEndPosition(this.barrelEndYOffset, this.turretPosition, this.turretAngle)
     }
 
     /**
@@ -50,6 +59,7 @@ export default class TankModel {
         this.polygon = GeometryService.rotatePolygonAround(this.polygon, this.center, GeometryService.deg2rad(angle))
         this.turretAngle += angle
         this.turretPosition = computeTurretPosition(this.turretYOffset, this.angle)
+        this.barrelEndPosition = computeBarrelEndPosition(this.barrelEndYOffset, this.turretPosition, this.turretAngle)
     }
 
     move(steps: number) {
@@ -63,5 +73,6 @@ export default class TankModel {
      */
     addTurretRotation(angle: number) {
         this.turretAngle += angle
+        this.barrelEndPosition = computeBarrelEndPosition(this.barrelEndYOffset, this.turretPosition, this.turretAngle)
     }
 }

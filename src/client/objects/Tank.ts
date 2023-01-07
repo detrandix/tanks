@@ -9,6 +9,7 @@ export default class Tank extends Phaser.GameObjects.Container {
     hpProgressBar: ProgressBar
     tweenImmortality: Phaser.Tweens.Tween|null = null
     nameLabel: Phaser.GameObjects.Text
+    exhaustAnimation: Phaser.GameObjects.Sprite
 
     constructor(scene: Phaser.Scene, player: Player) {
 		super(scene, player.x, player.y)
@@ -35,11 +36,19 @@ export default class Tank extends Phaser.GameObjects.Container {
             .text(0, -80, player.name, {backgroundColor: 'rgba(0, 0, 0, .5)'})
             .setOrigin(0.5, 0)
 
+        this.exhaustAnimation = this.scene.add
+            .sprite(
+                player.tankModel.barrelEndPosition.x,
+                player.tankModel.barrelEndPosition.y,
+                'exhaust0'
+            )
+
         this.add([
             this.tankBody,
             this.tankTurret,
             this.hpProgressBar,
             this.nameLabel,
+            this.exhaustAnimation,
         ])
 
         this.updateImortality(player)
@@ -63,6 +72,7 @@ export default class Tank extends Phaser.GameObjects.Container {
         }
 
         this.tankTurret.angle = player.tankModel.turretAngle
+        this.setExhaustAnimationPosition(player)
     }
 
     updateImortality(player: Player) {
@@ -83,5 +93,19 @@ export default class Tank extends Phaser.GameObjects.Container {
                 this.alpha = 1
             })
         }
+    }
+
+    exhaust(player: Player) {
+        this.setExhaustAnimationPosition(player)
+        this.exhaustAnimation.visible = true
+        this.exhaustAnimation.play('exhaust', false)
+        this.exhaustAnimation.once('animationcomplete', () => {
+            this.exhaustAnimation.visible = false
+        })
+    }
+
+    setExhaustAnimationPosition(player: Player) {
+        this.exhaustAnimation.setPosition(player.tankModel.barrelEndPosition.x, player.tankModel.barrelEndPosition.y)
+        this.exhaustAnimation.angle = player.tankModel.turretAngle + 180 // image is upside down
     }
 }

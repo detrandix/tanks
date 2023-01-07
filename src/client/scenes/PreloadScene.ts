@@ -26,9 +26,38 @@ export default class Preload extends Phaser.Scene {
         this.load.image('heavy-shell', 'assets/Effects/Heavy_Shell.png')
         this.load.image('granade-shell', 'assets/Effects/Granade_Shell.png')
         this.load.image('background', 'assets/background.jpg')
+        // exhaust
+        this.load.image('exhaust0', 'assets/Effects/Sprites/Sprite_Effects_Exhaust_01_000.png')
+        this.load.image('exhaust1', 'assets/Effects/Sprites/Sprite_Effects_Exhaust_01_001.png')
+        this.load.image('exhaust2', 'assets/Effects/Sprites/Sprite_Effects_Exhaust_01_002.png')
+        this.load.image('exhaust3', 'assets/Effects/Sprites/Sprite_Effects_Exhaust_01_003.png')
+        this.load.image('exhaust4', 'assets/Effects/Sprites/Sprite_Effects_Exhaust_01_004.png')
+        this.load.image('exhaust5', 'assets/Effects/Sprites/Sprite_Effects_Exhaust_01_005.png')
+        this.load.image('exhaust6', 'assets/Effects/Sprites/Sprite_Effects_Exhaust_01_006.png')
+        this.load.image('exhaust7', 'assets/Effects/Sprites/Sprite_Effects_Exhaust_01_007.png')
+        this.load.image('exhaust8', 'assets/Effects/Sprites/Sprite_Effects_Exhaust_01_008.png')
+        this.load.image('exhaust9', 'assets/Effects/Sprites/Sprite_Effects_Exhaust_01_009.png')
 	}
 
 	create() {
+        this.anims.create({
+            key: 'exhaust',
+            frames: [
+                {key: 'exhaust0'},
+                {key: 'exhaust1'},
+                {key: 'exhaust2'},
+                {key: 'exhaust3'},
+                {key: 'exhaust4'},
+                {key: 'exhaust5'},
+                {key: 'exhaust6'},
+                {key: 'exhaust7'},
+                {key: 'exhaust8'},
+                {key: 'exhaust9'},
+            ],
+            frameRate: 16,
+            repeat: 0
+        })
+
         this.socket = io()
 
         this.socket.on('init-state', (players: Record<string, Player>) => {

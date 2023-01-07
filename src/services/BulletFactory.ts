@@ -11,12 +11,13 @@ const getBulletProperties = (type: WeaponsEnum): {ttl: number, speed: number} =>
 }
 
 export default class BulletFactory {
-    static create(id: string, type: WeaponsEnum, tankModel: TankModel): Bullet {
+    static create(id: string, playerId: string, type: WeaponsEnum, tankModel: TankModel): Bullet {
         const {ttl, speed} = getBulletProperties(type)
         return {
             id,
-            x: tankModel.center.x,
-            y: tankModel.center.y,
+            playerId,
+            x: tankModel.center.x + tankModel.barrelEndPosition.x,
+            y: tankModel.center.y + tankModel.barrelEndPosition.y,
             angle: tankModel.turretAngle,
             created: Date.now(),
             ttl,

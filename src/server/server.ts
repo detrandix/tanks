@@ -82,7 +82,7 @@ io.on(EventsEnum.Connection, (socket) => {
         io.sockets.emit(EventsEnum.PlayerMoved, players[socket.id])
     })
 
-    socket.on(EventsEnum.Fire, (index) => {
+    socket.on(EventsEnum.Fire, (index: number) => {
         const player = players[socket.id]
 
         if (player.weapons[index] === undefined || player.weapons[index].timeToReload !== null) {
@@ -90,7 +90,7 @@ io.on(EventsEnum.Connection, (socket) => {
         }
 
         const id = uuid()
-        bullets[id] = BulletFactory.create(id, player.weapons[index].type, player.tankModel)
+        bullets[id] = BulletFactory.create(id, socket.id, player.weapons[index].type, player.tankModel)
         player.weapons[index].timeToReload = WeaponService.getTimeToReload(player.weapons[index].type)
         player.lastAction = Date.now()
         io.sockets.emit(EventsEnum.BulletsUpdate, bullets)

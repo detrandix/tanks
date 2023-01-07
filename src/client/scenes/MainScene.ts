@@ -177,6 +177,8 @@ export default class MainScene extends Phaser.Scene {
                 this.bullets[id].data = bullets[id]
             } else {
                 // create
+                this.tanks[bullets[id].playerId].entity.visible
+                this.tanks[bullets[id].playerId].entity.exhaust(this.tanks[bullets[id].playerId].player)
                 const fire = this.add
                     .sprite(bullets[id].x, bullets[id].y, bullets[id].type)
                     .setOrigin(0.5, 0.5)

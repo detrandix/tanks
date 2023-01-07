@@ -2,6 +2,7 @@ import { WeaponsEnum } from './WeaponsEnum'
 
 export default interface Bullet {
     id: string,
+    playerId: string,
     x: number,
     y: number,
     angle: number,
