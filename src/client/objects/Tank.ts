@@ -1,10 +1,12 @@
+import Player from '../../model/Player'
 import ProgressBar from './ProgressBar'
 
 export default class Tank extends Phaser.GameObjects.Container {
     tankBody: Phaser.GameObjects.Sprite
     tankTurret: Phaser.GameObjects.Sprite
+    hpProgressBar: ProgressBar
 
-    constructor(scene: Phaser.Scene, player: number) {
+    constructor(scene: Phaser.Scene, player: Player) {
 		super(scene, player.x, player.y)
 
         this.tankBody = scene.add
@@ -29,7 +31,7 @@ export default class Tank extends Phaser.GameObjects.Container {
         this.add(this.hpProgressBar)
     }
 
-    move(player) {
+    move(player: Player) {
         this.x = player.x
         this.y = player.y
         this.tankBody.angle = player.bodyRotation

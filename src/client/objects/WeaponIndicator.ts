@@ -2,7 +2,7 @@ export default class WeaponIndicator extends Phaser.GameObjects.Container {
     arc: Phaser.GameObjects.Graphics
     sprite: Phaser.GameObjects.Sprite
 
-	constructor(scene: Phaser.Scene, x: number, y: number, weapon)
+	constructor(scene: Phaser.Scene, x: number, y: number, weapon: string)
 	{
 		super(scene, x, y)
         this.setScrollFactor(0)

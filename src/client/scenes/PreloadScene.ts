@@ -1,4 +1,10 @@
+import Player from '../../model/Player';
+import io from 'socket.io-client'
+import MainSceneData from '../../model/MainSceneData';
+
 export default class Preload extends Phaser.Scene {
+    socket: SocketIOClient.Socket;
+
     constructor() {
         super('PreloadScene');
     }
@@ -23,20 +29,13 @@ export default class Preload extends Phaser.Scene {
 	}
 
 	create() {
-		//NOTE: Change to GameTitle if required
-        this.scene.start('MainScene')
+        this.socket = io()
 
-
-
-    /*socket.on('connect', () => {
-        console.log("You're connected to socket.io")
-      })
-
-      // we wait until we have a valid clientId, then start the MainScene
-      socket.on('clientId', (clientId: number) => {
-        socket.clientId = clientId
-        console.log('Your client id', clientId)
-        this.scene.start('MenuScene', { socket })
-      })*/
+        this.socket.on('init-state', (players: Record<string, Player>) => {
+            this.scene.start('MainScene', {
+                socket: this.socket,
+                players
+            } as MainSceneData)
+        })
 	}
 }

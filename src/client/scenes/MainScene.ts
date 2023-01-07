@@ -1,4 +1,7 @@
 import io from 'socket.io-client'
+import Bullet from '../../model/Bullet';
+import MainSceneData from '../../model/MainSceneData';
+import Player from '../../model/Player';
 import Tank from '../objects/Tank'
 import WeaponIndicator from '../objects/WeaponIndicator'
 
@@ -7,9 +10,16 @@ export default class MainScene extends Phaser.Scene {
     leftWeapon: WeaponIndicator|null; // TODO: is this good solution?
     rightWeapon: WeaponIndicator|null; // TODO: is this good solution?
     socket: SocketIOClient.Socket;
+    cursorKeys: object;
+
+    state: {
+        tanks: Record<string, {entity: Tank, player: Player}>;
+        fires: Record<string, Bullet>;
+    };
 
     constructor() {
         super('MainScene');
+
         this.background = null
         this.state = {
             tanks: {},
@@ -20,60 +30,57 @@ export default class MainScene extends Phaser.Scene {
         this.rightWeapon = null
     }
 
-	create() {
+	create({socket, players}: MainSceneData) {
+        this.socket = socket
+
         this.input.setPollAlways()
 
         this.background = this.add.tileSprite(0, 0, this.cameras.main.width, this.cameras.main.height, 'background')
             .setTileScale(.5, .5)
             .setScrollFactor(0)
 
-        this.socket = io()
+        for (let id in players) {
+            if (this.socket.id === id) {
+                this.leftWeapon = new WeaponIndicator(this, 100, 100, 'heavy-shell')
+                this.add.existing(this.leftWeapon)
+                this.rightWeapon = new WeaponIndicator(this, 300, 100, 'granade-shell')
+                this.add.existing(this.rightWeapon)
 
-        this.socket.on('init-state', (players) => {
-            for (let id in players) {
-                if (this.socket.id === id) {
-                    this.leftWeapon = new WeaponIndicator(this, 100, 100, 'heavy-shell')
-                    this.add.existing(this.leftWeapon)
-                    this.rightWeapon = new WeaponIndicator(this, 300, 100, 'granade-shell')
-                    this.add.existing(this.rightWeapon)
-
-
-                    const tank = this.createTank(players[id])
-                    // nesmrtelnost - TODO
-                    this.tweens.add({
-                        targets: [tank.entity],
-                        ease: 'Sine.easeInOut',
-                        duration: 300,
-                        delay: 50,
-                        repeat: -1,
-                        yoyo: true,
-                        alpha: 0.8,
-                    })
-                    this.cameras.main.startFollow(tank.entity)
-                    this.cameras.main.setFollowOffset(-this.cameras.main.centerX/2, -this.cameras.main.centerY/2)
-                    // initial centerinf of map
-                    this.background.tilePositionX = players[id].x / this.background.tileScaleX
-                    this.background.tilePositionY = players[id].y / this.background.tileScaleY
-                } else {
-                    this.createTank(players[id])
-                }
+                const tank = this.createTank(players[id])
+                // nesmrtelnost - TODO
+                this.tweens.add({
+                    targets: [tank.entity],
+                    ease: 'Sine.easeInOut',
+                    duration: 300,
+                    delay: 50,
+                    repeat: -1,
+                    yoyo: true,
+                    alpha: 0.8,
+                })
+                this.cameras.main.startFollow(tank.entity)
+                this.cameras.main.setFollowOffset(-this.cameras.main.centerX/2, -this.cameras.main.centerY/2)
+                // initial centerinf of map
+                this.background.tilePositionX = players[id].x / this.background.tileScaleX
+                this.background.tilePositionY = players[id].y / this.background.tileScaleY
+            } else {
+                this.createTank(players[id])
             }
-        })
+        }
 
-        this.socket.on('new-player', (player) => {
+        this.socket.on('new-player', (player: Player) => {
             this.createTank(player)
         })
 
-        this.socket.on('player-moved', (player) => this.updateTank(player))
+        this.socket.on('player-moved', (player: Player) => this.updateTank(player))
 
-        this.socket.on('remove-player', (id) => {
+        this.socket.on('remove-player', (id: string) => {
             if (id in this.state.tanks) {
                 this.state.tanks[id].entity.destroy()
                 delete this.state.tanks[id]
             }
         })
 
-        this.socket.on('update-player', (player) => {
+        this.socket.on('update-player', (player: Player) => {
             if (player.playerId in this.state.tanks) {
                 this.state.tanks[player.playerId].player = player
                 if (player.timeToReload) {
@@ -84,7 +91,7 @@ export default class MainScene extends Phaser.Scene {
             }
         })
 
-        this.socket.on('fires', (fires) => {
+        this.socket.on('fires', (fires: Record<string, Bullet>) => {
             for (let id in fires) {
                 if (id in this.state.fires) {
                     // update
@@ -126,14 +133,14 @@ export default class MainScene extends Phaser.Scene {
             space: Phaser.Input.Keyboard.KeyCodes.SPACE,
         })
 
-        this.input.on('pointerdown', (pointer) => {
+        this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
             if (pointer.leftButtonDown()) {
                 this.socket.emit('fire')
             }
         })
 	}
 
-    createTank(player) {
+    createTank(player: Player) {
         const entity = new Tank(this, player)
         this.add.existing(entity)
 
@@ -145,14 +152,14 @@ export default class MainScene extends Phaser.Scene {
         return data
     }
 
-    updateBackground(player, playerOld) {
+    updateBackground(player: Player, playerOld: Player) {
         const diffX = player.x - playerOld.x
         const diffY = player.y - playerOld.y
         this.background.tilePositionX += diffX / this.background.tileScaleX
         this.background.tilePositionY += diffY / this.background.tileScaleY
     }
 
-    updateTank(player) {
+    updateTank(player: Player) {
         if (! player.playerId in this.state.tanks) {
             return
         }
