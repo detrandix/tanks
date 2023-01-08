@@ -1,4 +1,3 @@
-import Tank from '../client/objects/Tank'
 import Player from '../model/Player'
 import { TankColorEnum } from '../model/TankColorEnum'
 import TankModel from '../model/TankModel'

@@ -1,6 +1,7 @@
 import TimeToReload from './TimeToReload'
+import { WeaponsEnum } from './WeaponsEnum'
 
 export default interface Weapon {
-    type: WeaponEnum,
+    type: WeaponsEnum,
     timeToReload: TimeToReload|null,
 }

@@ -1,5 +1,4 @@
 import TankModel from './TankModel';
-import TimeToReload from './TimeToReload';
 import Weapon from './Weapon';
 
 export default interface Player {
