@@ -9,10 +9,12 @@ import Player from '../model/Player'
 import Bullet from '../model/Bullet'
 import BulletFactory from '../services/BulletFactory'
 import WeaponService from '../services/WeaponService'
-import TankFactory from '../services/TankFactory'
+import TankModelFactory from '../services/TankModelFactory'
 import { EventsEnum } from '../model/EventsEnum'
 import GeometryService from '../services/GeometryService'
 import BulletExplode from '../model/BulletExplode'
+import PlayerFactory from '../services/PlayerFactory'
+import TankDestroyed from '../model/TankDestroyed'
 
 const app = express()
 const server = http.createServer(app)
@@ -33,6 +35,7 @@ server.listen(port, () => {
 })
 
 const players: Record<string, Player> = {}
+//const tans:
 const sockets = {}
 const bullets: Record<string, Bullet> = {}
 
@@ -43,10 +46,14 @@ function uuid() {
     return crypto.randomUUID()
 }
 
+// TODO: move to some DI
+const tankModelFactory = new TankModelFactory()
+const playerFactory = new PlayerFactory(tankModelFactory)
+
 io.on(EventsEnum.Connection, (socket) => {
     console.log(`A user #${socket.id} just connected.`)
     sockets[socket.id] = socket
-    players[socket.id] = TankFactory.create(socket.id, players)
+    players[socket.id] = playerFactory.create(socket.id, players)
     socket.emit(EventsEnum.InitState, players) // send the players object to the new player
     socket.broadcast.emit(EventsEnum.NewPlayer, players[socket.id]) // update all other players of the new player
 
@@ -87,13 +94,13 @@ io.on(EventsEnum.Connection, (socket) => {
     socket.on(EventsEnum.Fire, (index: number) => {
         const player = players[socket.id]
 
-        if (player.weapons[index] === undefined || player.weapons[index].timeToReload !== null) {
+        if (player.tankModel.weapons[index] === undefined || player.tankModel.weapons[index].timeToReload !== null) {
             return
         }
 
         const id = uuid()
-        bullets[id] = BulletFactory.create(id, socket.id, player.weapons[index].type, player.tankModel)
-        player.weapons[index].timeToReload = WeaponService.getTimeToReload(player.weapons[index].type)
+        bullets[id] = BulletFactory.create(id, socket.id, player.tankModel.weapons[index].type, player.tankModel)
+        player.tankModel.weapons[index].timeToReload = WeaponService.getTimeToReload(player.tankModel.weapons[index].type)
         player.lastAction = Date.now()
         // this bullet will be proceeed in main loop - TODO: is this good solution?
     })
@@ -143,22 +150,36 @@ setInterval(() => {
         const bullet = updateBullet(bullets[id])
         const hittedPlayer = bulletHitSomePlayer(bullet)
         if (hittedPlayer !== null) {
-            hittedPlayer.hp -= bullet.damage
-            // TODO solve death player
-            io.sockets.emit(
-                EventsEnum.BulletExplode,
-                {
-                    id,
-                    hittedPlayerId: hittedPlayer.playerId,
-                    x: bullet.x,
-                    y: bullet.y,
-                    angle: bullet.angle,
-                } as BulletExplode
-            )
-            io.sockets.emit(
-                EventsEnum.PlayerUpdate,
-                hittedPlayer
-            )
+            hittedPlayer.tankModel.hp -= bullet.damage
+
+            const bulletExplode = {
+                id,
+                hittedPlayerId: hittedPlayer.playerId,
+                x: bullet.x,
+                y: bullet.y,
+                angle: bullet.angle,
+            } as BulletExplode
+
+            if (hittedPlayer.tankModel.hp <= 0) {
+                hittedPlayer.tankModel = tankModelFactory.createFromPlayer(hittedPlayer, players)
+                io.sockets.emit(
+                    EventsEnum.TankDestroyed,
+                    {
+                        bullet: bulletExplode,
+                        updatedPlayer: hittedPlayer
+                    } as TankDestroyed
+                )
+            } else {
+                io.sockets.emit(
+                    EventsEnum.BulletExplode,
+                    bulletExplode
+                )
+                io.sockets.emit(
+                    EventsEnum.PlayerUpdate,
+                    hittedPlayer
+                )
+            }
+
             emitedBullets.push(bullet) // we wanna to create bullet, even if it hit target
             delete bullets[id]
         } else if (bullet.ttl > 0) {
@@ -171,7 +192,7 @@ setInterval(() => {
     io.sockets.emit(EventsEnum.BulletsUpdate, emitedBullets)
 
     for (let id in players) {
-        for (let weapon of players[id].weapons) {
+        for (let weapon of players[id].tankModel.weapons) {
             if (weapon.timeToReload !== null) {
                 if (weapon.timeToReload.ttl <= UPDATE_INTERVAL) {
                     weapon.timeToReload = null
@@ -181,11 +202,11 @@ setInterval(() => {
             }
         }
 
-        if (players[id].immortalityTtl !== null) {
-            if (players[id].immortalityTtl <= UPDATE_INTERVAL) {
-                players[id].immortalityTtl = null
+        if (players[id].tankModel.immortalityTtl !== null) {
+            if (players[id].tankModel.immortalityTtl <= UPDATE_INTERVAL) {
+                players[id].tankModel.immortalityTtl = null
             } else {
-                players[id].immortalityTtl -= UPDATE_INTERVAL
+                players[id].tankModel.immortalityTtl -= UPDATE_INTERVAL
             }
         }
         // TODO: emit every time or only if there is change prom last emit?

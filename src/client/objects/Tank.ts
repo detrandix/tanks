@@ -38,7 +38,7 @@ export default class Tank extends Phaser.GameObjects.Container {
 		super(scene, player.tankModel.center.x, player.tankModel.center.y)
 
         this.tankBody = scene.add
-            .sprite(0, 0, 'tank-body-' + player.color)
+            .sprite(0, 0, 'tank-body-' + player.tankModel.color)
             .setOrigin(0.5, 0.5)
             .setSize(player.tankModel.width, player.tankModel.height)
             .setDepth(1)
@@ -48,7 +48,7 @@ export default class Tank extends Phaser.GameObjects.Container {
             .sprite(
                 player.tankModel.turretPosition.x,
                 player.tankModel.turretPosition.y,
-                'tank-turret-' + player.color
+                'tank-turret-' + player.tankModel.color
             )
             .setOrigin(player.tankModel.turretOrigin.x, player.tankModel.turretOrigin.y)
             .setDepth(2)
@@ -91,7 +91,7 @@ export default class Tank extends Phaser.GameObjects.Container {
         this.move(player)
         this.updateImortality(player)
         this.nameLabel.setText(player.name)
-        this.hpProgressBar.progress(player.hp / player.maxHp)
+        this.hpProgressBar.progress(player.tankModel.hp / player.tankModel.maxHp)
     }
 
     move(player: Player) {
@@ -112,16 +112,16 @@ export default class Tank extends Phaser.GameObjects.Container {
     }
 
     updateImortality(player: Player) {
-        if (player.immortalityTtl === null && this.tweenImmortality?.isPlaying()) {
+        if (player.tankModel.immortalityTtl === null && this.tweenImmortality?.isPlaying()) {
             this.tweenImmortality.complete()
             this.tweenImmortality = null
-        } else if (player.immortalityTtl !== null && this.tweenImmortality === null) {
+        } else if (player.tankModel.immortalityTtl !== null && this.tweenImmortality === null) {
             this.tweenImmortality = this.scene.tweens.add({
                 targets: [this],
                 ease: 'Sine.easeInOut',
                 duration: 300,
                 delay: 0,
-                repeat: player.immortalityTtl / TWEEN_IMORTALITY_DURATION,
+                repeat: player.tankModel.immortalityTtl / TWEEN_IMORTALITY_DURATION,
                 yoyo: true,
                 alpha: 0.8,
             })

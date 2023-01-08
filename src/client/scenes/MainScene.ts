@@ -4,6 +4,7 @@ import { EventsEnum } from '../../model/EventsEnum'
 import MainSceneData from '../../model/MainSceneData'
 import Player from '../../model/Player'
 import Point from '../../model/Point'
+import TankDestroyed from '../../model/TankDestroyed'
 import Radar from '../objects/Radar'
 import Tank from '../objects/Tank'
 import WeaponIndicator from '../objects/WeaponIndicator'
@@ -56,6 +57,7 @@ export default class MainScene extends Phaser.Scene {
         this.socket.on(EventsEnum.PlayerUpdate, (player: Player) => this.onPlayerUpdate(player))
         this.socket.on(EventsEnum.BulletsUpdate, (bullets: Record<string, Bullet>) => this.onBulletsUpdate(bullets))
         this.socket.on(EventsEnum.BulletExplode, (bulletExplode: BulletExplode) => this.onBulletExplode(bulletExplode))
+        this.socket.on(EventsEnum.TankDestroyed, (tankDestroyed: TankDestroyed) => this.onTankDestroyed(tankDestroyed))
 
         this.cursorKeys = this.input.keyboard.addKeys({
             up: Phaser.Input.Keyboard.KeyCodes.UP,
@@ -88,8 +90,8 @@ export default class MainScene extends Phaser.Scene {
             if (this.socket.id === id) {
                 const tank = this.createTank(players[id])
 
-                for (let i=0; i<players[id].weapons.length; i++) {
-                    const weapon = players[id].weapons[i]
+                for (let i=0; i<players[id].tankModel.weapons.length; i++) {
+                    const weapon = players[id].tankModel.weapons[i]
                     const weaponIndicator = new WeaponIndicator(this, 150 * (i + 1), 100, weapon.type)
                     this.add.existing(weaponIndicator)
                     this.weaponIndicators.push(weaponIndicator)
@@ -184,9 +186,9 @@ export default class MainScene extends Phaser.Scene {
         // TODO: do this only in one place
         this.tanks[player.playerId].entity.update(player)
         this.tanks[player.playerId].player = player
-        for (let i=0; i<player.weapons.length; i++) {
+        for (let i=0; i<player.tankModel.weapons.length; i++) {
             // TODO: check if there is more/less weapons
-            const timeToReload = player.weapons[i].timeToReload
+            const timeToReload = player.tankModel.weapons[i].timeToReload
             if (timeToReload) {
                 this.weaponIndicators[i].setTimeToReload((timeToReload.total - timeToReload.ttl) / timeToReload.total)
             } else {
@@ -236,13 +238,22 @@ export default class MainScene extends Phaser.Scene {
         )
         if (bulletExplode.hittedPlayerId === this.socket.id) {
             this.cameras.main.shake(250)
-            if (hitted.player.hp < hitted.player.maxHp / 2) {
+            if (hitted.player.tankModel.hp < hitted.player.tankModel.maxHp / 2) {
                 this.cameras.main.flash(250, 255, 0, 0)
             }
         }
     }
 
+    onTankDestroyed(tankDestroyed: TankDestroyed): void {
+        this.onBulletExplode(tankDestroyed.bullet)
+        this.onPlayerUpdate(tankDestroyed.updatedPlayer)
+    }
+
     updateBackground(player: Player, playerOld: Player): void {
+        if (this.background === null) {
+            return
+        }
+
         const diffX = player.tankModel.center.x - playerOld.tankModel.center.x
         const diffY = player.tankModel.center.y - playerOld.tankModel.center.y
         this.background.tilePositionX += diffX / this.background.tileScaleX
