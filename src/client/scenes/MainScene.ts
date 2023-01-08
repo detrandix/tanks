@@ -205,11 +205,18 @@ export default class MainScene extends Phaser.Scene {
     }
 
     onBulletExplode(bulletExplode: BulletExplode): void {
-        this.tanks[bulletExplode.hittedPlayerId].entity.impact(
+        const hitted = this.tanks[bulletExplode.hittedPlayerId]
+        hitted.entity.impact(
             bulletExplode,
-            this.tanks[bulletExplode.hittedPlayerId].player,
+            hitted.player,
             this.tanks[this.socket.id].player
         )
+        if (bulletExplode.hittedPlayerId === this.socket.id) {
+            this.cameras.main.shake(250)
+            if (hitted.player.hp < hitted.player.maxHp / 2) {
+                this.cameras.main.flash(250, 255, 0, 0)
+            }
+        }
     }
 
     updateBackground(player: Player, playerOld: Player): void {
