@@ -46,7 +46,7 @@ function uuid() {
 io.on(EventsEnum.Connection, (socket) => {
     console.log(`A user #${socket.id} just connected.`)
     sockets[socket.id] = socket
-    players[socket.id] = TankFactory.create(socket.id)
+    players[socket.id] = TankFactory.create(socket.id, players)
     socket.emit(EventsEnum.InitState, players) // send the players object to the new player
     socket.broadcast.emit(EventsEnum.NewPlayer, players[socket.id]) // update all other players of the new player
 
