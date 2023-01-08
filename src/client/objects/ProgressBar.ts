@@ -26,9 +26,10 @@ export default class ProgressBar extends Phaser.GameObjects.Container {
     }
 
     progress(percentage: number) {
+        const normalizedPercentage = Math.max(0, percentage)
         this.progressBar
             .clear()
             .fillStyle(this.progressColor, 1)
-            .fillRect(-this.width/2 + 1, 1, (this.width - 2) * percentage, this.height - 2)
+            .fillRect(-this.width/2 + 1, 1, (this.width - 2) * normalizedPercentage, this.height - 2)
     }
 }

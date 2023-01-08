@@ -8,12 +8,27 @@ import Radar from '../objects/Radar'
 import Tank from '../objects/Tank'
 import WeaponIndicator from '../objects/WeaponIndicator'
 
+const KEY_DELTA = 100
+
+type CursorKeys = {
+    up: Phaser.Input.Keyboard.Key,
+    down: Phaser.Input.Keyboard.Key,
+    left: Phaser.Input.Keyboard.Key,
+    right: Phaser.Input.Keyboard.Key,
+    w: Phaser.Input.Keyboard.Key,
+    a: Phaser.Input.Keyboard.Key,
+    s: Phaser.Input.Keyboard.Key,
+    d: Phaser.Input.Keyboard.Key,
+    space: Phaser.Input.Keyboard.Key
+}
+
 export default class MainScene extends Phaser.Scene {
     socket: SocketIOClient.Socket
     background: Phaser.GameObjects.TileSprite|null = null
     weaponIndicators: Array<WeaponIndicator> = []
-    cursorKeys: object
+    cursorKeys: CursorKeys
     lastMousePosition: Point|null = null
+    lastKeyTime: number
     radar: Radar
 
     tanks: Record<string, {entity: Tank, player: Player}> = {}
@@ -52,10 +67,12 @@ export default class MainScene extends Phaser.Scene {
             a: Phaser.Input.Keyboard.KeyCodes.A,
             d: Phaser.Input.Keyboard.KeyCodes.D,
             space: Phaser.Input.Keyboard.KeyCodes.SPACE,
-        })
+        }) as CursorKeys
 
         this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => this.onMouseClick(pointer))
         this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => this.onMouseMove(pointer))
+
+        this.lastKeyTime = Date.now()
 	}
 
     loadInitSituation(players: Record<string, Player>): void {
@@ -250,11 +267,24 @@ export default class MainScene extends Phaser.Scene {
             return
         }
 
-        const tank = this.tanks[this.socket.id]
+        this.processKeys()
+
+        let itemsForRadar = {} as Record<string, Player>
+        for (let id in this.tanks) {
+            itemsForRadar[id] = this.tanks[id].player
+        }
+        this.radar.drawPlayers(itemsForRadar)
+	}
+
+    processKeys(): void {
+        const actualTime = Date.now()
+        if (actualTime - this.lastKeyTime < KEY_DELTA) {
+            return
+        }
 
         if (this.cursorKeys.left.isDown || this.cursorKeys.a.isDown) {
             this.socket.emit(EventsEnum.BodyRotateLeft)
-            // interpolate
+            // TODO: interpolate
         } else if (this.cursorKeys.right.isDown || this.cursorKeys.d.isDown) {
             this.socket.emit(EventsEnum.BodyRotateRight)
         }
@@ -265,10 +295,6 @@ export default class MainScene extends Phaser.Scene {
             this.socket.emit(EventsEnum.MoveBackward)
         }
 
-        let itemsForRadar = {} as Record<string, Player>
-        for (let id in this.tanks) {
-            itemsForRadar[id] = this.tanks[id].player
-        }
-        this.radar.drawPlayers(itemsForRadar)
-	}
+        this.lastKeyTime = actualTime
+    }
 }
