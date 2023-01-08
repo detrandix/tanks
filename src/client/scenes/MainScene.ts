@@ -197,6 +197,7 @@ export default class MainScene extends Phaser.Scene {
                     entity: fire,
                     data: bullets[id]
                 }
+                this.cameras.main.shake(250)
                 this.tanks[bullets[id].playerId].entity.exhaust(this.tanks[bullets[id].playerId].player, bullets[id], this.tanks[this.socket.id].player)
             }
         }

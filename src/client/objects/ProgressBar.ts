@@ -19,8 +19,10 @@ export default class ProgressBar extends Phaser.GameObjects.Container {
 
         this.progress(percentage)
 
-        this.add(this.progressBox)
-        this.add(this.progressBar)
+        this.add([
+            this.progressBox,
+            this.progressBar,
+        ])
     }
 
     progress(percentage: number) {

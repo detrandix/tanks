@@ -3,7 +3,7 @@ import TankModel from '../../model/TankModel'
 import Tank from './Tank'
 
 const CIRCLE_RADIUS = 100
-const MAX_DISTANCE = 1000
+const MAX_DISTANCE = 1500
 
 export default class Radar extends Phaser.GameObjects.Container {
     mainPlayerId: string
