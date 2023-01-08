@@ -7,6 +7,6 @@ export default class GameOver extends Phaser.Scene {
 	}
 
 	restartGame() {
-		this.game.state.start('MainScene');
+		this.scene.start('MainScene');
 	}
 }

@@ -1,10 +1,10 @@
-//import io from 'socket.io-client'
 import Bullet from '../../model/Bullet'
 import BulletExplode from '../../model/BulletExplode'
 import { EventsEnum } from '../../model/EventsEnum'
 import MainSceneData from '../../model/MainSceneData'
 import Player from '../../model/Player'
 import Point from '../../model/Point'
+import Radar from '../objects/Radar'
 import Tank from '../objects/Tank'
 import WeaponIndicator from '../objects/WeaponIndicator'
 
@@ -14,6 +14,7 @@ export default class MainScene extends Phaser.Scene {
     weaponIndicators: Array<WeaponIndicator> = []
     cursorKeys: object
     lastMousePosition: Point|null = null
+    radar: Radar
 
     tanks: Record<string, {entity: Tank, player: Player}> = {}
     bullets: Record<string, {entity: Phaser.GameObjects.Sprite, data: Bullet}> = {}
@@ -61,6 +62,10 @@ export default class MainScene extends Phaser.Scene {
         this.background = this.add.tileSprite(0, 0, this.cameras.main.width, this.cameras.main.height, 'background')
             .setTileScale(.5, .5)
             .setScrollFactor(0)
+
+        // TODO: move to right
+        this.radar = new Radar(this, 200, 200, this.socket.id, players)
+        this.add.existing(this.radar)
 
         for (let id in players) {
             if (this.socket.id === id) {
@@ -240,21 +245,29 @@ export default class MainScene extends Phaser.Scene {
     }
 
 	update(): void {
-        if (this.socket.id in this.tanks) {
-            const tank = this.tanks[this.socket.id]
-
-            if (this.cursorKeys.left.isDown || this.cursorKeys.a.isDown) {
-                this.socket.emit(EventsEnum.BodyRotateLeft)
-                // interpolate
-            } else if (this.cursorKeys.right.isDown || this.cursorKeys.d.isDown) {
-                this.socket.emit(EventsEnum.BodyRotateRight)
-            }
-
-            if (this.cursorKeys.up.isDown || this.cursorKeys.w.isDown) {
-                this.socket.emit(EventsEnum.MoveForward)
-            } else if (this.cursorKeys.down.isDown || this.cursorKeys.s.isDown) {
-                this.socket.emit(EventsEnum.MoveBackward)
-            }
+        if (! (this.socket.id in this.tanks)) {
+            return
         }
+
+        const tank = this.tanks[this.socket.id]
+
+        if (this.cursorKeys.left.isDown || this.cursorKeys.a.isDown) {
+            this.socket.emit(EventsEnum.BodyRotateLeft)
+            // interpolate
+        } else if (this.cursorKeys.right.isDown || this.cursorKeys.d.isDown) {
+            this.socket.emit(EventsEnum.BodyRotateRight)
+        }
+
+        if (this.cursorKeys.up.isDown || this.cursorKeys.w.isDown) {
+            this.socket.emit(EventsEnum.MoveForward)
+        } else if (this.cursorKeys.down.isDown || this.cursorKeys.s.isDown) {
+            this.socket.emit(EventsEnum.MoveBackward)
+        }
+
+        let itemsForRadar = {} as Record<string, Player>
+        for (let id in this.tanks) {
+            itemsForRadar[id] = this.tanks[id].player
+        }
+        this.radar.drawPlayers(itemsForRadar)
 	}
 }
