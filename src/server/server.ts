@@ -159,6 +159,7 @@ setInterval(() => {
                 EventsEnum.PlayerUpdate,
                 hittedPlayer
             )
+            emitedBullets.push(bullet) // we wanna to create bullet, even if it hit target
             delete bullets[id]
         } else if (bullet.ttl > 0) {
             emitedBullets.push(bullet)

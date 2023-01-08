@@ -2,6 +2,7 @@ import Bullet from '../../model/Bullet'
 import BulletExplode from '../../model/BulletExplode'
 import Player from '../../model/Player'
 import { WeaponsEnum } from '../../model/WeaponsEnum'
+import GeometryService from '../../services/GeometryService'
 import ProgressBar from './ProgressBar'
 
 const TWEEN_IMORTALITY_DURATION = 300
@@ -96,6 +97,8 @@ export default class Tank extends Phaser.GameObjects.Container {
 
             this.tankTurret.x = player.tankModel.turretPosition.x
             this.tankTurret.y = player.tankModel.turretPosition.y
+
+            this.updateImpactAnimationPosition()
         }
 
         this.tankTurret.angle = player.tankModel.turretAngle
@@ -147,12 +150,11 @@ export default class Tank extends Phaser.GameObjects.Container {
         this.exhaustAnimation.angle = player.tankModel.turretAngle + 180 // image is upside down
     }
 
-    // TODO: recompute impactAnimation when tank is turning
     impact(bulletExplode: BulletExplode, player: Player, actualPlayer: Player) {
         const x = bulletExplode.x - this.x
         const y = bulletExplode.y - this.y
         this.impactAnimation.setPosition(x, y)
-        this.impactAnimation.angle = bulletExplode.angle + 180 // image is upside down
+        this.impactAnimation.angle = Phaser.Math.RadToDeg(Phaser.Math.Angle.Between(0, 0, x, y)) + 90
         this.impactAnimation.visible = true
         this.impactAnimation.play('shot-impact', false)
         this.impactAnimation.once('animationcomplete', () => {
@@ -160,5 +162,17 @@ export default class Tank extends Phaser.GameObjects.Container {
         })
 
         playDistanceSound(this.impactSound, player, actualPlayer)
+    }
+
+    updateImpactAnimationPosition() {
+        const angleDiff = this.tankBody.angle - this.impactAnimation.angle
+        this.impactAnimation.angle = this.tankBody.angle
+        const newPoint = GeometryService.rotatePointAround(
+            {x: this.impactAnimation.x, y: this.impactAnimation.y},
+            {x: 0, y: 0},
+            GeometryService.deg2rad(angleDiff)
+        )
+        this.impactAnimation.x = newPoint.x
+        this.impactAnimation.y = newPoint.y
     }
 }

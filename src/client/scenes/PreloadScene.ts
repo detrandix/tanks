@@ -76,7 +76,7 @@ export default class Preload extends Phaser.Scene {
                 {key: 'impact3'},
             ],
             frameRate: 16,
-            repeat: 0
+            repeat: 5
         })
 
         this.socket = io()
