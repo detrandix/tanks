@@ -8,7 +8,7 @@ export default class WeaponIndicator extends Phaser.GameObjects.Container {
 	{
 		super(scene, x, y)
         this.setScrollFactor(0)
-        this.setDepth(1)
+        this.setDepth(100)
 
         this.backgroundCircle = scene.add.graphics()
             .fillStyle(0x999999, 1)

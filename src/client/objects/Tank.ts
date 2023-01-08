@@ -41,6 +41,7 @@ export default class Tank extends Phaser.GameObjects.Container {
             .sprite(0, 0, 'tank-body-' + player.color)
             .setOrigin(0.5, 0.5)
             .setSize(player.tankModel.width, player.tankModel.height)
+            .setDepth(1)
         this.tankBody.angle = player.tankModel.angle
 
         this.tankTurret = scene.add
@@ -50,19 +51,24 @@ export default class Tank extends Phaser.GameObjects.Container {
                 'tank-turret-' + player.color
             )
             .setOrigin(player.tankModel.turretOrigin.x, player.tankModel.turretOrigin.y)
+            .setDepth(2)
         this.tankTurret.angle = player.tankModel.turretAngle
 
         this.hpProgressBar = new ProgressBar(scene, 0, -100, 100, 10)
+            .setDepth(3)
         scene.add.existing(this.hpProgressBar)
 
         this.nameLabel = scene.add
             .text(0, -80, player.name, {backgroundColor: 'rgba(0, 0, 0, .5)'})
             .setOrigin(0.5, 0)
+            .setDepth(3)
 
         this.exhaustAnimation = this.scene.add.sprite(0, 0, 'exhaust0')
+            .setDepth(4)
         this.exhaustAnimation.visible = false
 
         this.impactAnimation = this.scene.add.sprite(0, 0, 'impact0')
+            .setDepth(1)
         this.impactAnimation.visible = false
 
         this.exhaustHeavySound = this.scene.sound.add('heavy-shot', {loop: false})
