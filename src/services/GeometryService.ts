@@ -2,6 +2,7 @@ import Circle from '../model/Circle'
 import Line from '../model/Line'
 import Point from '../model/Point'
 import Polygon from '../model/Polygon'
+import NumberService from './NumberService'
 
 const DEG2RAD = Math.PI/180
 
@@ -13,10 +14,6 @@ const translatePolygonPoints = (polygon: Polygon, fn: translatePointFn): Polygon
         translatedPoints.push(fn(point))
     }
     return new Polygon(translatedPoints)
-}
-
-const roundToTwoDecimalPlaces = (n: number): number => {
-    return Math.round((n + Number.EPSILON) * 100) / 100
 }
 
 export default class GeometryService {
@@ -62,8 +59,8 @@ export default class GeometryService {
      */
     static movePoint(point: Point, angle: number, steps: number): Point {
         return {
-            x: roundToTwoDecimalPlaces(point.x + steps * Math.cos(angle)),
-            y: roundToTwoDecimalPlaces(point.y + steps * Math.sin(angle)),
+            x: NumberService.roundToTwoDecimalPlaces(point.x + steps * Math.cos(angle)),
+            y: NumberService.roundToTwoDecimalPlaces(point.y + steps * Math.sin(angle)),
         }
     }
 
@@ -85,8 +82,8 @@ export default class GeometryService {
         const ty = point.y - center.y;
 
         return {
-            x: roundToTwoDecimalPlaces(tx * c - ty * s + center.x),
-            y: roundToTwoDecimalPlaces(tx * s + ty * c + center.y)
+            x: NumberService.roundToTwoDecimalPlaces(tx * c - ty * s + center.x),
+            y: NumberService.roundToTwoDecimalPlaces(tx * s + ty * c + center.y)
         }
     }
 

@@ -3,17 +3,21 @@ import io from 'socket.io-client'
 import MainSceneData from '../../model/MainSceneData';
 import { EventsEnum } from '../../model/EventsEnum';
 import InitStateEvent from '../../model/InitStateEvent';
+import ProgressBar from '../objects/ProgressBar';
 
 export default class Preload extends Phaser.Scene {
     socket: SocketIOClient.Socket;
+    progressBar: ProgressBar;
+    assetText: Phaser.GameObjects.Text;
 
     constructor() {
         super('PreloadScene');
     }
 
 	preload() {
-        let dpr = this.scale.displayScale.x // we suppose that x === y
+        this.prepareScreen()
 
+        let dpr = this.scale.displayScale.x // we suppose that x === y
         // brown tank
         this.load.image('tank-body-brown', `assets/images/tank-01/color-a/body@${dpr}.png`)
         this.load.image('tank-turret-brown', `assets/images/tank-01/color-a/turret@${dpr}.png`)
@@ -111,6 +115,16 @@ export default class Preload extends Phaser.Scene {
             repeat: -1
         })
 
+        this.add.text(
+            this.cameras.main.centerX,
+            this.cameras.main.centerY + this.scale.transformY(20),
+            'connection...',
+            {
+                fontFamily: 'monospace',
+                fontSize: this.scale.transformX(30) + 'px'
+            }
+        ).setOrigin(0.5, 0.5)
+
         this.socket = io()
 
         this.socket.on(EventsEnum.InitState, (initStateEvent: InitStateEvent) => {
@@ -121,4 +135,58 @@ export default class Preload extends Phaser.Scene {
             } as MainSceneData)
         })
 	}
+
+    prepareScreen() {
+        this.add.text(
+            this.cameras.main.centerX,
+            this.cameras.main.centerY - this.scale.transformY(50),
+            'TANKS',
+            {
+                fontFamily: 'monospace',
+                fontSize: this.scale.transformX(50) + 'px'
+            }
+        ).setOrigin(0.5, 0.5)
+        this.progressBar = new ProgressBar(
+            this,
+            this.cameras.main.centerX,
+            this.cameras.main.centerY,
+            this.scale.transformX(300),
+            this.scale.transformY(50),
+            {
+                initPercentage: 0,
+                borderColor: 0x444444,
+                progressColor: 0x999999,
+                showLabel: true,
+                progressBarOffset: this.scale.transformX(8)
+            }
+        )
+            .setDepth(3)
+        this.add.existing(this.progressBar)
+        this.assetText = this.add.text(
+            this.cameras.main.centerX,
+            this.cameras.main.centerY + this.scale.transformY(70),
+            '',
+            {
+                fontFamily: 'monospace',
+                fontSize: this.scale.transformX(15) + 'px'
+            }
+        ).setOrigin(0.5, 0.5)
+
+        this.load.on('fileprogress', (file: Phaser.Loader.File) => this.fileProgress(file))
+        this.load.on('progress', (value: number) => this.progress(value))
+        this.load.on('complete', () => this.loadComplete())
+    }
+
+    progress(value: number) {
+        this.progressBar.progress(value)
+    }
+
+    fileProgress(file: Phaser.Loader.File) {
+        this.assetText.setText('Loading asset: ' + file.key)
+    }
+
+    loadComplete() {
+        this.progressBar.setVisible(false)
+        this.assetText.setVisible(false)
+    }
 }

@@ -1,4 +1,3 @@
-import BootScene from './scenes/BootScene'
 import PreloadScene from './scenes/PreloadScene'
 import MainScene from './scenes/MainScene'
 import GameOverScene from './scenes/GameOverScene'
@@ -31,6 +30,6 @@ const config: Phaser.Types.Core.GameConfig = {
       gravity: { y: 0 }
     }
   },
-  scene: [BootScene, PreloadScene, MainScene, GameOverScene],
+  scene: [PreloadScene, MainScene, GameOverScene],
 };
 export default config
