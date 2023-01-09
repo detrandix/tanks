@@ -35,6 +35,7 @@ export default class Tank extends Phaser.GameObjects.Container {
     exhaustHeavySound: Phaser.Sound.BaseSound
     exhaustGranadeSound: Phaser.Sound.BaseSound
     impactSound: Phaser.Sound.BaseSound
+    lastPercentage: number
 
     constructor(scene: Phaser.Scene, tankModel: TankModel, player: Player|null) {
 		super(scene, scene.scale.transformX(tankModel.center.x), scene.scale.transformY(tankModel.center.y))

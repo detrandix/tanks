@@ -17,6 +17,7 @@ export default class ProgressBar extends Phaser.GameObjects.Container {
     progressBar: Phaser.GameObjects.Graphics
     progressLabel: Phaser.GameObjects.Text
     progressBarOffset: number
+    lastPercentage: number
 
     constructor(
         scene: Phaser.Scene,
@@ -37,7 +38,7 @@ export default class ProgressBar extends Phaser.GameObjects.Container {
         this.progressBar = scene.add.graphics();
 
         this.progressBox
-            .fillStyle(options.borderColor || 0x00ff00, 0.8)
+            .fillStyle(options.borderColor || 0x000000, 0.8)
             .fillRect(-width/2, 0, width, height)
 
         const labelFontSize = options.labelFontSize || (height - 2 * this.progressBarOffset) - 4
@@ -53,7 +54,9 @@ export default class ProgressBar extends Phaser.GameObjects.Container {
         ).setOrigin(0.5, 0.5)
         this.progressLabel.setVisible(options.showLabel || false)
 
-        this.progress(options.initPercentage || 1)
+        const initPercentage = options.initPercentage || 1
+        this.lastPercentage = -initPercentage // some different value, to force update
+        this.progress(initPercentage)
 
         this.add([
             this.progressBox,
@@ -63,6 +66,10 @@ export default class ProgressBar extends Phaser.GameObjects.Container {
     }
 
     progress(percentage: number) {
+        if (percentage === this.lastPercentage) {
+            return
+        }
+
         const normalizedPercentage = Math.max(0, percentage)
         this.progressBar
             .clear()
@@ -73,6 +80,7 @@ export default class ProgressBar extends Phaser.GameObjects.Container {
                 (this.width - (2 * this.progressBarOffset)) * normalizedPercentage,
                 this.height - (2 * this.progressBarOffset)
             )
-            this.progressLabel.setText(NumberService.roundToOneDecimalPlace(100 * normalizedPercentage) + '%')
+        this.progressLabel.setText(NumberService.roundToOneDecimalPlace(100 * normalizedPercentage) + '%')
+        this.lastPercentage = percentage
     }
 }
