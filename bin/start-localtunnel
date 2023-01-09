@@ -1,0 +1,7 @@
+#!/bin/sh
+
+# TODO: check server is running, also make port as parameter
+# TODO: check localtunnel is installed
+until npx lt --port 3000 --subdomain tanks; do
+    :
+done
