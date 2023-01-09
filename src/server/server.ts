@@ -18,6 +18,7 @@ import TankDestroyed from '../model/TankDestroyed'
 import TankModel from '../model/TankModel'
 import InitStateEvent from '../model/InitStateEvent'
 import NewPlayerEvent from '../model/NewPlayerEvent'
+import TankSetupFactory from '../services/TankSetupFactory'
 
 const app = express()
 const server = http.createServer(app)
@@ -47,7 +48,8 @@ const DEG2RAD = Math.PI/180
 const deg2rad = (deg: number) => deg * DEG2RAD
 
 // TODO: move to some DI
-const tankModelFactory = new TankModelFactory()
+const tankSetupFactory = new TankSetupFactory()
+const tankModelFactory = new TankModelFactory(tankSetupFactory)
 const playerFactory = new PlayerFactory()
 
 const initPlayer = (playerId: string): Player => {
@@ -93,7 +95,7 @@ io.on(EventsEnum.Connection, (socket) => {
         if (tankModel === null) {
             return
         }
-        tankModel.addRotation(-1)
+        tankModel.addRotation(-1, tanks)
         players[socket.id].lastAction = Date.now()
         io.sockets.emit(EventsEnum.TankMoved, tankModel)
     })
@@ -103,7 +105,7 @@ io.on(EventsEnum.Connection, (socket) => {
         if (tankModel === null) {
             return
         }
-        tankModel.addRotation(1)
+        tankModel.addRotation(1, tanks)
         players[socket.id].lastAction = Date.now()
         io.sockets.emit(EventsEnum.TankMoved, tankModel)
     })
@@ -113,7 +115,7 @@ io.on(EventsEnum.Connection, (socket) => {
         if (tankModel === null) {
             return
         }
-        tankModel.move(1)
+        tankModel.move(1, tanks)
         players[socket.id].lastAction = Date.now()
         io.sockets.emit(EventsEnum.TankMoved, tankModel)
     })
@@ -123,7 +125,7 @@ io.on(EventsEnum.Connection, (socket) => {
         if (tankModel === null) {
             return
         }
-        tankModel.move(-1)
+        tankModel.move(-1, tanks)
         players[socket.id].lastAction = Date.now()
         io.sockets.emit(EventsEnum.TankMoved, tankModel)
     })
@@ -289,7 +291,7 @@ setInterval(() => {
     }
     io.sockets.emit(EventsEnum.BulletsUpdate, emitedBullets)
 
-    let removeTanksIds = []
+    let tanksForRemove = []
     for (let id in tanks) {
         for (let weapon of tanks[id].weapons) {
             if (weapon.timeToReload !== null) {
@@ -313,7 +315,7 @@ setInterval(() => {
             tanks[id].destroyed -= UPDATE_INTERVAL
             if (tanks[id].destroyed <= 0) {
                 io.sockets.emit(EventsEnum.RemoveTank, tanks[id])
-                removeTanksIds.push(id)
+                tanksForRemove.push(id)
             }
         }
 
@@ -323,7 +325,7 @@ setInterval(() => {
         }
     }
 
-    for (let id in removeTanksIds) {
+    for (let id of tanksForRemove) {
         delete tanks[id]
     }
 }, UPDATE_INTERVAL)

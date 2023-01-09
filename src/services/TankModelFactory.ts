@@ -1,22 +1,19 @@
 import Player from '../model/Player'
 import Point from '../model/Point'
-import { TankColorEnum } from '../model/TankColorEnum'
 import TankModel, { TankModelConstructor } from '../model/TankModel'
-import { WeaponsEnum } from '../model/WeaponsEnum'
+import GeometryService from './GeometryService'
+import TankSetupFactory from './TankSetupFactory'
 
-const absoluteDistance = (x1: number, y1: number, x2: number, y2: number) => {
-    return Math.sqrt(Math.pow(Math.abs(x2 - x1), 2) + Math.pow(Math.abs(y2 - y1), 2))
-}
+const MIN_TANK_DISTANCE = 50
 
-const findAvailablePosition = (tanks: Record<string, TankModel>): Point => {
+const findAvailablePosition = (radius: number, tanks: Record<string, TankModel>): Point => {
     let x, y, availablePosition
     do {
-        x = Math.floor(Math.random() * 800)
+        x = Math.floor(Math.random() * 800) // TODO: make better seeding of x/y
         y = Math.floor(Math.random() * 800)
         availablePosition = true
         for (let id in tanks) {
-            const {x: centerX, y: centerY} = tanks[id].center
-            if (absoluteDistance(x, y, centerX, centerY) < 200) {
+            if (GeometryService.pointsDistance({x, y}, tanks[id].center) < (radius + tanks[id].radius + MIN_TANK_DISTANCE)) {
                 availablePosition = false
                 break
             }
@@ -26,25 +23,31 @@ const findAvailablePosition = (tanks: Record<string, TankModel>): Point => {
 }
 
 export default class TankModelFactory {
+    tankSetupFactory: TankSetupFactory
+
+    constructor(tankSetupFactory: TankSetupFactory) {
+        this.tankSetupFactory = tankSetupFactory
+    }
+
     create(player: Player, tanks: Record<string, TankModel>): TankModel {
-        const availablePosition = findAvailablePosition(tanks)
+        const tankSetup = this.tankSetupFactory.create()
+        const availablePosition = findAvailablePosition(tankSetup.radius, tanks)
         return new TankModel({
             playerId: player.playerId,
             center: availablePosition,
-            width: 164,
-            height: 256,
+            width: tankSetup.width,
+            height: tankSetup.height,
+            radius: tankSetup.radius,
             angle: 0,
-            turretYOffset: 50,
+            bodyOrigin: tankSetup.bodyOrigin,
+            turretYOffset: tankSetup.turretYOffset,
             turretAngle: 0,
-            turretOrigin: {x: 0.5, y: 0.8},
-            barrelEndYOffset: -160,
-            maxHp: 100,
+            turretOrigin: tankSetup.turretOrigin,
+            barrelEndYOffset: tankSetup.barrelEndYOffset,
+            maxHp: tankSetup.maxHp,
             immortalityTtl: 3000,
-            weapons: [
-                {type: WeaponsEnum.Heavy, timeToReload: null},
-                {type: WeaponsEnum.Granade, timeToReload: null},
-            ],
+            weapons: tankSetup.weapons,
             color: player.preferedColor
-        } as TankModelConstructor)
+        })
     }
 }

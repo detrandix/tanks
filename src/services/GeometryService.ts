@@ -1,3 +1,5 @@
+import Circle from '../model/Circle'
+import Line from '../model/Line'
 import Point from '../model/Point'
 import Polygon from '../model/Polygon'
 
@@ -20,6 +22,39 @@ const roundToTwoDecimalPlaces = (n: number): number => {
 export default class GeometryService {
     static deg2rad(deg: number): number {
         return deg * DEG2RAD
+    }
+
+    static pointsDistance(p1: Point, p2: Point): number {
+        return Math.sqrt(Math.pow(Math.abs(p2.x - p1.x), 2) + Math.pow(Math.abs(p2.y - p1.y), 2))
+    }
+
+    static circlesIntersect(circle1: Circle, circle2: Circle): boolean {
+        const centersDistance = this.pointsDistance(circle1.center, circle2.center)
+        return centersDistance < (circle1.radius + circle2.radius)
+    }
+
+    static lineIntersection(line1: Line, line2: Line): Point|null {
+        const x1 = line1.p1.x
+        const x2 = line1.p2.x
+        const x3 = line2.p1.x
+        const x4 = line2.p2.x
+        const y1 = line1.p1.y
+        const y2 = line1.p2.y
+        const y3 = line2.p1.y
+        const y4 = line2.p2.y
+        const denominator = (y4-y3)*(x2-x1)-(x4-x3)*(y2-y1)
+        if (denominator === 0) {
+            return null
+        }
+        const u_a = ((x4-x3)*(y1-y3)-(y4-y3)*(x1-x3))/denominator
+        const u_b = ((x2-x1)*(y1-y3)-(y2-y1)*(x1-x3))/denominator
+        if (u_a >= 0 && u_a <= 1 && u_b >= 0 && u_b <= 1) {
+            return {
+                x: x1 + u_a * (x2 - x1),
+                y: y1 + u_a * (y2 - y1),
+            }
+        }
+        return null
     }
 
     /**
@@ -82,5 +117,16 @@ export default class GeometryService {
         }
 
         return inside;
-    };
+    }
+
+    static polygonInsidePolygon(polygon1: Polygon, polygon2: Polygon): boolean {
+        for (let myLine of polygon1.lines) {
+            for (let theirLine of polygon2.lines) {
+                if (this.lineIntersection(myLine, theirLine) !== null) {
+                    return true
+                }
+            }
+        }
+        return false
+    }
 }

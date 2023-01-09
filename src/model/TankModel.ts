@@ -1,3 +1,4 @@
+import { Geom } from 'phaser'
 import GeometryService from '../services/GeometryService'
 import Utils from '../services/Utils'
 import Point from './Point'
@@ -18,7 +19,9 @@ export type TankModelConstructor = {
     center: Point,
     width: number,
     height: number,
+    radius: number,
     angle: number,
+    bodyOrigin: Point,
     turretYOffset: number,
     turretAngle: number,
     turretOrigin: Point,
@@ -35,8 +38,10 @@ export default class TankModel {
     center: Point
     width: number
     height: number
+    radius: number
     polygon: Polygon
     angle: number
+    bodyOrigin: Point
     turretYOffset: number
     turretAngle: number
     turretPosition: Point
@@ -56,7 +61,9 @@ export default class TankModel {
         this.center = data.center
         this.width = data.width
         this.height = data.height
+        this.radius = data.radius
         this.angle = data.angle
+        this.bodyOrigin = data.bodyOrigin
         this.turretYOffset = data.turretYOffset
         this.turretAngle = data.turretAngle
         this.turretOrigin = data.turretOrigin
@@ -68,6 +75,7 @@ export default class TankModel {
         this.weapons = data.weapons
         this.color = data.color
 
+        // TODO: create polygonGenerator function based on tank type
         this.polygon = new Polygon([
             {x: data.center.x - data.width/2, y: data.center.y - data.height/2},
             {x: data.center.x + data.width/2, y: data.center.y - data.height/2},
@@ -81,25 +89,58 @@ export default class TankModel {
     /**
      * @param angle The angle of rotation in degreees.
      */
-    addRotation(angle: number) {
+    addRotation(angle: number, tanks: Record<string, TankModel>): void {
+        const newPolygon = GeometryService.rotatePolygonAround(this.polygon, this.center, GeometryService.deg2rad(angle))
+
+        const collision = this.collisitionWithOtherTank(this.center, newPolygon, tanks)
+        if (collision !== null) {
+            return
+        }
+
         this.angle += angle
-        this.polygon = GeometryService.rotatePolygonAround(this.polygon, this.center, GeometryService.deg2rad(angle))
+        this.polygon = newPolygon
         this.turretAngle += angle
         this.turretPosition = computeTurretPosition(this.turretYOffset, this.angle)
         this.barrelEndPosition = computeBarrelEndPosition(this.barrelEndYOffset, this.turretPosition, this.turretAngle)
     }
 
-    move(steps: number) {
+    move(steps: number, tanks: Record<string, TankModel>): void {
         const angleInRad = GeometryService.deg2rad(this.angle - 90) // TODO: solve this 90degree problem
-        this.center = GeometryService.movePoint(this.center, angleInRad, steps)
-        this.polygon = GeometryService.movePolygon(this.polygon, angleInRad, steps)
+        const newCenter = GeometryService.movePoint(this.center, angleInRad, steps)
+        const newPolygon = GeometryService.movePolygon(this.polygon, angleInRad, steps)
+
+        const collision = this.collisitionWithOtherTank(newCenter, newPolygon, tanks)
+        if (collision !== null) {
+            return
+        }
+
+        this.center = newCenter
+        this.polygon = newPolygon
     }
 
     /**
      * @param angle The angle of rotation in degreees.
      */
-    addTurretRotation(angle: number) {
+    addTurretRotation(angle: number): void {
         this.turretAngle += angle
         this.barrelEndPosition = computeBarrelEndPosition(this.barrelEndYOffset, this.turretPosition, this.turretAngle)
+    }
+
+    collisitionWithOtherTank(center: Point, polygon: Polygon, tanks: Record<string, TankModel>): TankModel|null {
+        for (let id in tanks) {
+            if (id === this.id) {
+                continue
+            }
+            if (! GeometryService.circlesIntersect(
+                {center, radius: this.radius},
+                {center: tanks[id].center, radius: tanks[id].radius},
+            )) {
+                continue
+            }
+            if (GeometryService.polygonInsidePolygon(polygon, tanks[id].polygon)) {
+                return tanks[id]
+            }
+        }
+        return null
     }
 }

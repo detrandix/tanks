@@ -41,7 +41,7 @@ export default class Tank extends Phaser.GameObjects.Container {
 
         this.tankBody = scene.add
             .sprite(0, 0, 'tank-body-' + tankModel.color)
-            .setOrigin(0.5, 0.5)
+            .setOrigin(tankModel.bodyOrigin.x, tankModel.bodyOrigin.y)
             .setSize(tankModel.width, tankModel.height)
             .setDepth(1)
         this.tankBody.angle = tankModel.angle
@@ -60,9 +60,8 @@ export default class Tank extends Phaser.GameObjects.Container {
             .setDepth(3)
         scene.add.existing(this.hpProgressBar)
 
-        // TODO: what to do in `UNKOWN` situation?
         this.nameLabel = scene.add
-            .text(0, -80, player ? player.name : 'UNKNOWN', {backgroundColor: 'rgba(0, 0, 0, .5)'})
+            .text(0, -80, '', {backgroundColor: 'rgba(0, 0, 0, .5)'})
             .setOrigin(0.5, 0)
             .setDepth(3)
 
@@ -93,14 +92,13 @@ export default class Tank extends Phaser.GameObjects.Container {
             this.explosionAnimation,
         ])
 
-        this.updateImortality(tankModel)
+        this.update(tankModel, player)
     }
 
     update(tankModel: TankModel, player: Player|null): void {
         this.move(tankModel)
         this.updateImortality(tankModel)
-        // TODO: what to do in `UNKOWN` situation?
-        this.nameLabel.setText(player ? player.name : 'UNKNOWN')
+        this.nameLabel.setText(player ? player.name : '💀')
         this.hpProgressBar.progress(tankModel.hp / tankModel.maxHp)
     }
 
