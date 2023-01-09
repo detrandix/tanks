@@ -51,6 +51,7 @@ export default class MainScene extends Phaser.Scene {
 
         this.input.setPollAlways()
         this.input.mouse.disableContextMenu()
+        this.cameras.main.setRoundPixels(true)
 
         this.loadInitSituation(players, tanks)
 
@@ -120,29 +121,30 @@ export default class MainScene extends Phaser.Scene {
 
     setCamerasAndWeapons(tank: {entity: Tank, tankModel: TankModel}) {
         this.cameras.main.startFollow(tank.entity)
-        this.cameras.main.setFollowOffset(-this.cameras.main.centerX/2, -this.cameras.main.centerY/2)
-        this.background.tilePositionX = tank.tankModel.center.x / this.background.tileScaleX
-        this.background.tilePositionY = tank.tankModel.center.y / this.background.tileScaleY
+        this.background.tilePositionX = this.scale.transformX(tank.tankModel.center.x) / this.background.tileScaleX
+        this.background.tilePositionY = this.scale.transformY(tank.tankModel.center.y) / this.background.tileScaleY
 
         for (let weaponIndicator of this.weaponIndicators) {
             weaponIndicator.destroy()
         }
         this.weaponIndicators = []
+        const y = this.scale.transformY(100)
         for (let i=0; i<tank.tankModel.weapons.length; i++) {
             const weapon = tank.tankModel.weapons[i]
-            const weaponIndicator = new WeaponIndicator(this, 150 * (i + 1), 100, weapon.type)
+            const x = this.scale.transformX(150 * (i + 1))
+            const weaponIndicator = new WeaponIndicator(this, x, y, weapon.type)
             this.add.existing(weaponIndicator)
             this.weaponIndicators.push(weaponIndicator)
         }
     }
 
     loadInitSituation(players: Record<string, Player>, tanks: Record<string, TankModel>): void {
-        this.background = this.add.tileSprite(0, 0, this.cameras.main.width, this.cameras.main.height, 'background')
+        this.background = this.add.tileSprite(0, 0, this.cameras.main.width * 2, this.cameras.main.height * 2, 'background')
             .setTileScale(.5, .5)
             .setScrollFactor(0)
 
         // TODO: move to right
-        this.radar = new Radar(this, 200, 200, this.socket.id, tanks)
+        this.radar = new Radar(this, this.scale.transformX(200), this.scale.transformY(200), this.socket.id, tanks)
         this.add.existing(this.radar)
 
         this.players = players
@@ -259,14 +261,18 @@ export default class MainScene extends Phaser.Scene {
         for (let id in bullets) {
             if (id in this.bullets) {
                 // update
-                this.bullets[id].entity.x = bullets[id].x
-                this.bullets[id].entity.y = bullets[id].y
+                this.bullets[id].entity.x = this.scale.transformX(bullets[id].x)
+                this.bullets[id].entity.y = this.scale.transformY(bullets[id].y)
                 this.bullets[id].entity.angle = bullets[id].angle
                 this.bullets[id].bullet = bullets[id]
             } else {
                 // create
                 const fire = this.add
-                    .sprite(bullets[id].x, bullets[id].y, bullets[id].type)
+                    .sprite(
+                        this.scale.transformX(bullets[id].x),
+                        this.scale.transformY(bullets[id].y),
+                        bullets[id].type
+                    )
                     .setOrigin(0.5, 0.5)
                     .setSize(40, 40)
                 fire.angle = bullets[id].angle
@@ -341,9 +347,8 @@ export default class MainScene extends Phaser.Scene {
         if (this.background === null) {
             return
         }
-
-        const diffX = tankModel.center.x - tankModelOld.center.x
-        const diffY = tankModel.center.y - tankModelOld.center.y
+        const diffX = this.scale.transformX(tankModel.center.x - tankModelOld.center.x)
+        const diffY = this.scale.transformY(tankModel.center.y - tankModelOld.center.y)
         this.background.tilePositionX += diffX / this.background.tileScaleX
         this.background.tilePositionY += diffY / this.background.tileScaleY
     }
@@ -395,6 +400,10 @@ export default class MainScene extends Phaser.Scene {
             this.socket.emit(EventsEnum.MoveForward)
         } else if (this.cursorKeys.down.isDown || this.cursorKeys.s.isDown) {
             this.socket.emit(EventsEnum.MoveBackward)
+        }
+
+        if (this.cursorKeys.space.isDown) {
+            this.socket.emit(EventsEnum.Fire, 0)
         }
 
         this.lastKeyTime = actualTime

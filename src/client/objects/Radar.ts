@@ -11,6 +11,7 @@ export default class Radar extends Phaser.GameObjects.Container {
     mainPlayerId: string
     lineAngle: number
     dotsContainer: Phaser.GameObjects.Container
+    dotSize: number
 
     constructor(scene: Phaser.Scene, x: number, y: number, mainPlayerId: string, tanks: Record<string, TankModel>) {
         super(scene, x, y)
@@ -18,6 +19,7 @@ export default class Radar extends Phaser.GameObjects.Container {
         this.setDepth(100)
         this.lineAngle = 0
         this.mainPlayerId = mainPlayerId
+        this.dotSize = scene.scale.transformX(3)
 
         this.createBackgroundCircle()
 
@@ -28,13 +30,15 @@ export default class Radar extends Phaser.GameObjects.Container {
     }
 
     createBackgroundCircle() {
+        const transformedCircleRadius = this.scene.scale.transformX(CIRCLE_RADIUS)
+
         this.add(this.scene.add.graphics()
             .fillStyle(0x000000, 1)
-            .fillCircle(0, 0, CIRCLE_RADIUS)
+            .fillCircle(0, 0, transformedCircleRadius)
             .closePath())
 
-        const step = CIRCLE_RADIUS/INNER_CIRCLES_COUNT
-        for (let radius=step; radius<=CIRCLE_RADIUS; radius += step) {
+        const step = transformedCircleRadius/INNER_CIRCLES_COUNT
+        for (let radius=step; radius<=transformedCircleRadius; radius += step) {
             this.add(this.scene.add.graphics()
                 .lineStyle(1, 0x70c470, 1)
                 .strokeCircle(0, 0, radius)
@@ -44,7 +48,7 @@ export default class Radar extends Phaser.GameObjects.Container {
         const linesGroup = this.scene.add.container(0 ,0)
         this.add(linesGroup)
         for (let i=-LINES_COUNT; i<=0; i++) {
-            const line = this.scene.add.line(0, 0, 0, 0, 0, -CIRCLE_RADIUS, 0x76d27b, 0.5 + 0.5 * (i/LINES_COUNT))
+            const line = this.scene.add.line(0, 0, 0, 0, 0, -transformedCircleRadius, 0x76d27b, 0.5 + 0.5 * (i/LINES_COUNT))
                 .setOrigin(0, 0)
             line.angle = i
             linesGroup.add(line)
@@ -104,7 +108,7 @@ export default class Radar extends Phaser.GameObjects.Container {
             let y = circleDistace * Math.sin(angle)
 
             const color = tanks[id].destroyed !== false ? 0xff0000 : 0x00ff00
-            let circle = this.scene.add.circle(x, y, 3, color)
+            let circle = this.scene.add.circle(x, y, this.dotSize, color)
             this.dotsContainer.add(circle)
         }
     }

@@ -37,7 +37,7 @@ export default class Tank extends Phaser.GameObjects.Container {
     impactSound: Phaser.Sound.BaseSound
 
     constructor(scene: Phaser.Scene, tankModel: TankModel, player: Player|null) {
-		super(scene, tankModel.center.x, tankModel.center.y)
+		super(scene, scene.scale.transformX(tankModel.center.x), scene.scale.transformY(tankModel.center.y))
 
         this.tankBody = scene.add
             .sprite(0, 0, 'tank-body-' + tankModel.color)
@@ -48,20 +48,28 @@ export default class Tank extends Phaser.GameObjects.Container {
 
         this.tankTurret = scene.add
             .sprite(
-                tankModel.turretPosition.x,
-                tankModel.turretPosition.y,
+                scene.scale.transformX(tankModel.turretPosition.x),
+                scene.scale.transformY(tankModel.turretPosition.y),
                 'tank-turret-' + tankModel.color
             )
             .setOrigin(tankModel.turretOrigin.x, tankModel.turretOrigin.y)
             .setDepth(2)
         this.tankTurret.angle = tankModel.turretAngle
 
-        this.hpProgressBar = new ProgressBar(scene, 0, -100, 100, 10)
+        this.hpProgressBar = new ProgressBar(scene, scene.scale.transformX(0), scene.scale.transformY(-100), scene.scale.transformX(100), scene.scale.transformY(10))
             .setDepth(3)
         scene.add.existing(this.hpProgressBar)
 
         this.nameLabel = scene.add
-            .text(0, -80, '', {backgroundColor: 'rgba(0, 0, 0, .5)'})
+            .text(
+                scene.scale.transformX(0),
+                scene.scale.transformY(-80),
+                '',
+                {
+                    backgroundColor: 'rgba(0, 0, 0, .5)',
+                    fontSize: Math.round(scene.scale.transformX(14)) + 'px', // find some better solution for transforming text size
+                }
+            )
             .setOrigin(0.5, 0)
             .setDepth(3)
 
@@ -103,14 +111,14 @@ export default class Tank extends Phaser.GameObjects.Container {
     }
 
     move(tankModel: TankModel): void {
-        this.x = tankModel.center.x
-        this.y = tankModel.center.y
+        this.x = this.scene.scale.transformX(tankModel.center.x)
+        this.y = this.scene.scale.transformY(tankModel.center.y)
 
         if (this.tankBody.angle !== tankModel.angle) {
             this.tankBody.angle = tankModel.angle
 
-            this.tankTurret.x = tankModel.turretPosition.x
-            this.tankTurret.y = tankModel.turretPosition.y
+            this.tankTurret.x = this.scene.scale.transformX(tankModel.turretPosition.x)
+            this.tankTurret.y = this.scene.scale.transformY(tankModel.turretPosition.y)
 
             this.updateImpactAnimationPosition()
         }
@@ -165,13 +173,13 @@ export default class Tank extends Phaser.GameObjects.Container {
         if (! this.exhaustAnimation.active) {
             return
         }
-        this.exhaustAnimation.setPosition(tankModel.barrelEndPosition.x, tankModel.barrelEndPosition.y)
+        this.exhaustAnimation.setPosition(this.scene.scale.transformX(tankModel.barrelEndPosition.x), this.scene.scale.transformX(tankModel.barrelEndPosition.y))
         this.exhaustAnimation.angle = tankModel.turretAngle + 180 // image is upside down
     }
 
     impact(bulletExplode: BulletExplode, tankModel: TankModel, actualPlayerTankModel: TankModel|null): void {
-        const x = bulletExplode.x - this.x
-        const y = bulletExplode.y - this.y
+        const x = this.scene.scale.transformX(bulletExplode.x)- this.x
+        const y = this.scene.scale.transformY(bulletExplode.y) - this.y
         this.impactAnimation.setPosition(x, y)
         this.impactAnimation.angle = Phaser.Math.RadToDeg(Phaser.Math.Angle.Between(0, 0, x, y)) + 90
         this.impactAnimation.visible = true
