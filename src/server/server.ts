@@ -167,6 +167,7 @@ io.on(EventsEnum.Connection, (socket) => {
 
         for (let id in tanks) {
             if (tanks[id].playerId === socket.id && tanks[id].destroyed === false) {
+                tanks[id].hp = 0
                 setDestroydTtl(tanks[id])
                 io.sockets.emit(
                     EventsEnum.TankDestroyed,
