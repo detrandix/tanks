@@ -1,3 +1,5 @@
+const CIRCLE_RADIUS = 40
+
 export default class WeaponIndicator extends Phaser.GameObjects.Container {
     backgroundCircle: Phaser.GameObjects.Graphics
     arc: Phaser.GameObjects.Graphics
@@ -12,7 +14,7 @@ export default class WeaponIndicator extends Phaser.GameObjects.Container {
 
         this.backgroundCircle = scene.add.graphics()
             .fillStyle(0x999999, 1)
-            .fillCircle(0, 0, scene.scale.transformX(50))
+            .fillCircle(0, 0, scene.scale.transformX(CIRCLE_RADIUS))
             .closePath()
 
         this.arc = scene.add.graphics()
@@ -37,7 +39,7 @@ export default class WeaponIndicator extends Phaser.GameObjects.Container {
         this.arc
             .clear()
             .fillStyle(0xffff00, alpha)
-            .slice(0, 0, this.scene.scale.transformX(50), Phaser.Math.DegToRad(percentage*360), Phaser.Math.DegToRad(0), true)
+            .slice(0, 0, this.scene.scale.transformX(CIRCLE_RADIUS), Phaser.Math.DegToRad(percentage*360), Phaser.Math.DegToRad(0), true)
             .fillPath()
         this.actualPercentage = percentage
     }

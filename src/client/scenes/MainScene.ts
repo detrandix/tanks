@@ -128,10 +128,10 @@ export default class MainScene extends Phaser.Scene {
             weaponIndicator.destroy()
         }
         this.weaponIndicators = []
-        const y = this.scale.transformY(100)
+        const y = this.cameras.main.height - this.scale.transformY(100)
         for (let i=0; i<tank.tankModel.weapons.length; i++) {
             const weapon = tank.tankModel.weapons[i]
-            const x = this.scale.transformX(150 * (i + 1))
+            const x = this.scale.transformX(100 + i * 120)
             const weaponIndicator = new WeaponIndicator(this, x, y, weapon.type)
             this.add.existing(weaponIndicator)
             this.weaponIndicators.push(weaponIndicator)
@@ -143,8 +143,13 @@ export default class MainScene extends Phaser.Scene {
             .setTileScale(.5, .5)
             .setScrollFactor(0)
 
-        // TODO: move to right
-        this.radar = new Radar(this, this.scale.transformX(200), this.scale.transformY(200), this.socket.id, tanks)
+        this.radar = new Radar(
+            this,
+            this.scale.transformX(150),
+            this.scale.transformY(150),
+            this.socket.id,
+            tanks
+        )
         this.add.existing(this.radar)
 
         this.players = players
@@ -181,16 +186,19 @@ export default class MainScene extends Phaser.Scene {
             return
         }
 
+        const tankTurretX = this.scale.transformX(tankModel.center.x + tankModel.turretPosition.x)
+        const tankTurretY = this.scale.transformX(tankModel.center.y + tankModel.turretPosition.y)
+
         const prevAngleToPointer = Phaser.Math.RadToDeg(Phaser.Math.Angle.Between(
-            tankModel.center.x + tankModel.turretPosition.x,
-            tankModel.center.y + tankModel.turretPosition.y,
+            tankTurretX,
+            tankTurretY,
             this.lastMousePosition.x,
             this.lastMousePosition.y
         )) + 90
 
         const angleToPointer = Phaser.Math.RadToDeg(Phaser.Math.Angle.Between(
-            tankModel.center.x + tankModel.turretPosition.x,
-            tankModel.center.y + tankModel.turretPosition.y,
+            tankTurretX,
+            tankTurretY,
             pointer.worldX,
             pointer.worldY
         )) + 90
