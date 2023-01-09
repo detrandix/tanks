@@ -7,6 +7,7 @@ import Player from '../../model/Player'
 import Point from '../../model/Point'
 import TankDestroyed from '../../model/TankDestroyed'
 import TankModel from '../../model/TankModel'
+import PlayersList from '../objects/PlayersList'
 import Radar from '../objects/Radar'
 import Tank from '../objects/Tank'
 import WeaponIndicator from '../objects/WeaponIndicator'
@@ -33,6 +34,7 @@ export default class MainScene extends Phaser.Scene {
     lastMousePosition: Point|null = null
     lastKeyTime: number
     radar: Radar
+    playersList: PlayersList
 
     players: Record<string, Player> = {}
     tanks: Record<string, {entity: Tank, tankModel: TankModel}> = {}
@@ -152,6 +154,15 @@ export default class MainScene extends Phaser.Scene {
         )
         this.add.existing(this.radar)
 
+        this.playersList = new PlayersList(
+            this,
+            this.cameras.main.width - this.scale.transformX(50),
+            this.scale.transformY(50),
+            players,
+            this.socket.id
+        )
+        this.add.existing(this.playersList)
+
         this.players = players
 
         for (let id in tanks) {
@@ -233,6 +244,7 @@ export default class MainScene extends Phaser.Scene {
     onNewPlayer(newPlayerEvent: NewPlayerEvent): void {
         this.players[newPlayerEvent.player.playerId] = newPlayerEvent.player
         this.createTank(newPlayerEvent.tank)
+        this.playersList.updatePlayers(this.players, this.socket.id)
     }
 
     onTankMoved(tank: TankModel): void {
@@ -241,6 +253,7 @@ export default class MainScene extends Phaser.Scene {
 
     onRemovePlayer(id: string): void {
         delete this.players[id]
+        this.playersList.updatePlayers(this.players, this.socket.id)
     }
 
     onTankUpdate(tankModel: TankModel): void {
