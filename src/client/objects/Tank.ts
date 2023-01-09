@@ -1,6 +1,7 @@
 import Bullet from '../../model/Bullet'
 import BulletExplode from '../../model/BulletExplode'
 import Player from '../../model/Player'
+import TankModel from '../../model/TankModel'
 import { WeaponsEnum } from '../../model/WeaponsEnum'
 import GeometryService from '../../services/GeometryService'
 import ProgressBar from './ProgressBar'
@@ -8,12 +9,12 @@ import ProgressBar from './ProgressBar'
 const TWEEN_IMORTALITY_DURATION = 300
 const SOUND_DISTANCE = 1000
 
-const playDistanceSound = (sound: Phaser.Sound.BaseSound, player: Player, actualPlayer: Player) => {
+const playDistanceSound = (sound: Phaser.Sound.BaseSound, tankModel: TankModel, actualPlayerTankModel: TankModel): void => {
     const playersDistance = Phaser.Math.Distance.Between(
-        player.tankModel.center.x,
-        player.tankModel.center.y,
-        actualPlayer.tankModel.center.x,
-        actualPlayer.tankModel.center.y
+        tankModel.center.x,
+        tankModel.center.y,
+        actualPlayerTankModel.center.x,
+        actualPlayerTankModel.center.y
     )
 
     let normalizedVolume = 1 - (playersDistance / SOUND_DISTANCE)
@@ -30,36 +31,38 @@ export default class Tank extends Phaser.GameObjects.Container {
     nameLabel: Phaser.GameObjects.Text
     exhaustAnimation: Phaser.GameObjects.Sprite
     impactAnimation: Phaser.GameObjects.Sprite
+    explosionAnimation: Phaser.GameObjects.Sprite
     exhaustHeavySound: Phaser.Sound.BaseSound
     exhaustGranadeSound: Phaser.Sound.BaseSound
     impactSound: Phaser.Sound.BaseSound
 
-    constructor(scene: Phaser.Scene, player: Player) {
-		super(scene, player.tankModel.center.x, player.tankModel.center.y)
+    constructor(scene: Phaser.Scene, tankModel: TankModel, player: Player|null) {
+		super(scene, tankModel.center.x, tankModel.center.y)
 
         this.tankBody = scene.add
-            .sprite(0, 0, 'tank-body-' + player.tankModel.color)
+            .sprite(0, 0, 'tank-body-' + tankModel.color)
             .setOrigin(0.5, 0.5)
-            .setSize(player.tankModel.width, player.tankModel.height)
+            .setSize(tankModel.width, tankModel.height)
             .setDepth(1)
-        this.tankBody.angle = player.tankModel.angle
+        this.tankBody.angle = tankModel.angle
 
         this.tankTurret = scene.add
             .sprite(
-                player.tankModel.turretPosition.x,
-                player.tankModel.turretPosition.y,
-                'tank-turret-' + player.tankModel.color
+                tankModel.turretPosition.x,
+                tankModel.turretPosition.y,
+                'tank-turret-' + tankModel.color
             )
-            .setOrigin(player.tankModel.turretOrigin.x, player.tankModel.turretOrigin.y)
+            .setOrigin(tankModel.turretOrigin.x, tankModel.turretOrigin.y)
             .setDepth(2)
-        this.tankTurret.angle = player.tankModel.turretAngle
+        this.tankTurret.angle = tankModel.turretAngle
 
         this.hpProgressBar = new ProgressBar(scene, 0, -100, 100, 10)
             .setDepth(3)
         scene.add.existing(this.hpProgressBar)
 
+        // TODO: what to do in `UNKOWN` situation?
         this.nameLabel = scene.add
-            .text(0, -80, player.name, {backgroundColor: 'rgba(0, 0, 0, .5)'})
+            .text(0, -80, player ? player.name : 'UNKNOWN', {backgroundColor: 'rgba(0, 0, 0, .5)'})
             .setOrigin(0.5, 0)
             .setDepth(3)
 
@@ -70,6 +73,11 @@ export default class Tank extends Phaser.GameObjects.Container {
         this.impactAnimation = this.scene.add.sprite(0, 0, 'impact0')
             .setDepth(1)
         this.impactAnimation.visible = false
+
+        this.explosionAnimation = this.scene.add.sprite(0, 0, 'explosion0')
+            .setDepth(4)
+            .setOrigin(0.5, 0.5)
+        this.explosionAnimation.visible = false
 
         this.exhaustHeavySound = this.scene.sound.add('heavy-shot', {loop: false})
         this.exhaustGranadeSound = this.scene.sound.add('granade-shot', {loop: false})
@@ -82,46 +90,48 @@ export default class Tank extends Phaser.GameObjects.Container {
             this.nameLabel,
             this.exhaustAnimation,
             this.impactAnimation,
+            this.explosionAnimation,
         ])
 
-        this.updateImortality(player)
+        this.updateImortality(tankModel)
     }
 
-    update(player: Player) {
-        this.move(player)
-        this.updateImortality(player)
-        this.nameLabel.setText(player.name)
-        this.hpProgressBar.progress(player.tankModel.hp / player.tankModel.maxHp)
+    update(tankModel: TankModel, player: Player|null): void {
+        this.move(tankModel)
+        this.updateImortality(tankModel)
+        // TODO: what to do in `UNKOWN` situation?
+        this.nameLabel.setText(player ? player.name : 'UNKNOWN')
+        this.hpProgressBar.progress(tankModel.hp / tankModel.maxHp)
     }
 
-    move(player: Player) {
-        this.x = player.tankModel.center.x
-        this.y = player.tankModel.center.y
+    move(tankModel: TankModel): void {
+        this.x = tankModel.center.x
+        this.y = tankModel.center.y
 
-        if (this.tankBody.angle !== player.tankModel.angle) {
-            this.tankBody.angle = player.tankModel.angle
+        if (this.tankBody.angle !== tankModel.angle) {
+            this.tankBody.angle = tankModel.angle
 
-            this.tankTurret.x = player.tankModel.turretPosition.x
-            this.tankTurret.y = player.tankModel.turretPosition.y
+            this.tankTurret.x = tankModel.turretPosition.x
+            this.tankTurret.y = tankModel.turretPosition.y
 
             this.updateImpactAnimationPosition()
         }
 
-        this.tankTurret.angle = player.tankModel.turretAngle
-        this.setExhaustAnimationPosition(player)
+        this.tankTurret.angle = tankModel.turretAngle
+        this.setExhaustAnimationPosition(tankModel)
     }
 
-    updateImortality(player: Player) {
-        if (player.tankModel.immortalityTtl === null && this.tweenImmortality?.isPlaying()) {
+    updateImortality(tankModel: TankModel): void {
+        if (tankModel.immortalityTtl === null && this.tweenImmortality?.isPlaying()) {
             this.tweenImmortality.complete()
             this.tweenImmortality = null
-        } else if (player.tankModel.immortalityTtl !== null && this.tweenImmortality === null) {
+        } else if (tankModel.immortalityTtl !== null && this.tweenImmortality === null) {
             this.tweenImmortality = this.scene.tweens.add({
                 targets: [this],
                 ease: 'Sine.easeInOut',
                 duration: 300,
                 delay: 0,
-                repeat: player.tankModel.immortalityTtl / TWEEN_IMORTALITY_DURATION,
+                repeat: tankModel.immortalityTtl / TWEEN_IMORTALITY_DURATION,
                 yoyo: true,
                 alpha: 0.8,
             })
@@ -139,24 +149,29 @@ export default class Tank extends Phaser.GameObjects.Container {
         }
     }
 
-    exhaust(player: Player, bullet: Bullet, actualPlayer: Player) {
-        this.setExhaustAnimationPosition(player)
+    exhaust(tankModel: TankModel, bullet: Bullet, actualPlayerTankModel: TankModel|null): void {
+        this.setExhaustAnimationPosition(tankModel)
         this.exhaustAnimation.visible = true
         this.exhaustAnimation.play('exhaust', false)
         this.exhaustAnimation.once('animationcomplete', () => {
             this.exhaustAnimation.visible = false
         })
 
-        const sound = this.getSoundForWeapon(bullet.type)
-        playDistanceSound(sound, player, actualPlayer)
+        if (actualPlayerTankModel !== null) {
+            const sound = this.getSoundForWeapon(bullet.type)
+            playDistanceSound(sound, tankModel, actualPlayerTankModel)
+        }
     }
 
-    setExhaustAnimationPosition(player: Player) {
-        this.exhaustAnimation.setPosition(player.tankModel.barrelEndPosition.x, player.tankModel.barrelEndPosition.y)
-        this.exhaustAnimation.angle = player.tankModel.turretAngle + 180 // image is upside down
+    setExhaustAnimationPosition(tankModel: TankModel): void {
+        if (! this.exhaustAnimation.active) {
+            return
+        }
+        this.exhaustAnimation.setPosition(tankModel.barrelEndPosition.x, tankModel.barrelEndPosition.y)
+        this.exhaustAnimation.angle = tankModel.turretAngle + 180 // image is upside down
     }
 
-    impact(bulletExplode: BulletExplode, player: Player, actualPlayer: Player) {
+    impact(bulletExplode: BulletExplode, tankModel: TankModel, actualPlayerTankModel: TankModel|null): void {
         const x = bulletExplode.x - this.x
         const y = bulletExplode.y - this.y
         this.impactAnimation.setPosition(x, y)
@@ -167,10 +182,12 @@ export default class Tank extends Phaser.GameObjects.Container {
             this.impactAnimation.visible = false
         })
 
-        playDistanceSound(this.impactSound, player, actualPlayer)
+        if (actualPlayerTankModel !== null) {
+            playDistanceSound(this.impactSound, tankModel, actualPlayerTankModel)
+        }
     }
 
-    updateImpactAnimationPosition() {
+    updateImpactAnimationPosition(): void {
         const angleDiff = this.tankBody.angle - this.impactAnimation.angle
         this.impactAnimation.angle = this.tankBody.angle
         const newPoint = GeometryService.rotatePointAround(
@@ -180,5 +197,14 @@ export default class Tank extends Phaser.GameObjects.Container {
         )
         this.impactAnimation.x = newPoint.x
         this.impactAnimation.y = newPoint.y
+    }
+
+    destroyed(): void {
+        this.setAlpha(0.7)
+        this.explosionAnimation.visible = true
+        this.explosionAnimation.play('explosion', false)
+        this.explosionAnimation.once('animationcomplete', () => {
+            this.explosionAnimation.visible = false
+        })
     }
 }

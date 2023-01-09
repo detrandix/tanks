@@ -1,6 +1,7 @@
 import Bullet from '../model/Bullet'
 import TankModel from '../model/TankModel'
 import { WeaponsEnum } from '../model/WeaponsEnum'
+import Utils from './Utils'
 
 const getBulletProperties = (type: WeaponsEnum): {ttl: number, speed: number, damage: number} => {
     switch (type as WeaponsEnum) {
@@ -11,11 +12,11 @@ const getBulletProperties = (type: WeaponsEnum): {ttl: number, speed: number, da
 }
 
 export default class BulletFactory {
-    static create(id: string, playerId: string, type: WeaponsEnum, tankModel: TankModel): Bullet {
+    static create(tankId: string, type: WeaponsEnum, tankModel: TankModel): Bullet {
         const {ttl, speed, damage} = getBulletProperties(type)
         return {
-            id,
-            playerId,
+            id: Utils.uuid(),
+            tankId,
             x: tankModel.center.x + tankModel.barrelEndPosition.x,
             y: tankModel.center.y + tankModel.barrelEndPosition.y,
             angle: tankModel.turretAngle,

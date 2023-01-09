@@ -15,6 +15,9 @@ import GeometryService from '../services/GeometryService'
 import BulletExplode from '../model/BulletExplode'
 import PlayerFactory from '../services/PlayerFactory'
 import TankDestroyed from '../model/TankDestroyed'
+import TankModel from '../model/TankModel'
+import InitStateEvent from '../model/InitStateEvent'
+import NewPlayerEvent from '../model/NewPlayerEvent'
 
 const app = express()
 const server = http.createServer(app)
@@ -34,79 +37,147 @@ server.listen(port, () => {
     console.log(`Server running on port ${port}.`)
 })
 
+let playersCount = 0
 const players: Record<string, Player> = {}
-//const tans:
+const tanks: Record<string, TankModel> = {}
 const sockets = {}
 const bullets: Record<string, Bullet> = {}
 
 const DEG2RAD = Math.PI/180
 const deg2rad = (deg: number) => deg * DEG2RAD
 
-function uuid() {
-    return crypto.randomUUID()
-}
-
 // TODO: move to some DI
 const tankModelFactory = new TankModelFactory()
-const playerFactory = new PlayerFactory(tankModelFactory)
+const playerFactory = new PlayerFactory()
+
+const initPlayer = (playerId: string): Player => {
+    players[playerId] = playerFactory.create(playerId)
+    const tankModel = tankModelFactory.create(players[playerId], tanks)
+    players[playerId].tankModelId = tankModel.id
+    tanks[tankModel.id] = tankModel
+    return players[playerId]
+}
+
+const getTankModel = (playerId: string): TankModel|null => {
+    if (! (playerId in players)) {
+        return null
+    }
+    const tankModelId = players[playerId].tankModelId
+    if (tankModelId === null) {
+        return null
+    }
+    return tankModelId in tanks ? tanks[tankModelId] : null
+}
+
+const setDestroydTtl = (tankModel: TankModel): TankModel => {
+    tankModel.destroyed = 10000 // 10s TTL
+    return tankModel
+}
 
 io.on(EventsEnum.Connection, (socket) => {
-    console.log(`A user #${socket.id} just connected.`)
+    playersCount++
+    console.log(`A user #${socket.id} just connected. (total count: ${playersCount})`)
     sockets[socket.id] = socket
-    players[socket.id] = playerFactory.create(socket.id, players)
-    socket.emit(EventsEnum.InitState, players) // send the players object to the new player
-    socket.broadcast.emit(EventsEnum.NewPlayer, players[socket.id]) // update all other players of the new player
+    initPlayer(socket.id)
+    socket.emit(EventsEnum.InitState, {
+        players,
+        tanks
+    } as InitStateEvent) // send the players object to the new player
+    socket.broadcast.emit(EventsEnum.NewPlayer, {
+        player: players[socket.id],
+        tank: tanks[players[socket.id].tankModelId as string]
+    } as NewPlayerEvent) // update all other players of the new player
 
     socket.on(EventsEnum.BodyRotateLeft, () => {
-        players[socket.id].tankModel.addRotation(-1)
+        const tankModel = getTankModel(socket.id)
+        if (tankModel === null) {
+            return
+        }
+        tankModel.addRotation(-1)
         players[socket.id].lastAction = Date.now()
-        io.sockets.emit(EventsEnum.PlayerMoved, players[socket.id])
+        io.sockets.emit(EventsEnum.TankMoved, tankModel)
     })
 
     socket.on(EventsEnum.BodyRotateRight, () => {
-        players[socket.id].tankModel.addRotation(1)
+        const tankModel = getTankModel(socket.id)
+        if (tankModel === null) {
+            return
+        }
+        tankModel.addRotation(1)
         players[socket.id].lastAction = Date.now()
-        io.sockets.emit(EventsEnum.PlayerMoved, players[socket.id])
+        io.sockets.emit(EventsEnum.TankMoved, tankModel)
     })
 
-    socket.on(EventsEnum.MoveForward, () => { // TODO: move-forward
-        players[socket.id].tankModel.move(1)
+    socket.on(EventsEnum.MoveForward, () => {
+        const tankModel = getTankModel(socket.id)
+        if (tankModel === null) {
+            return
+        }
+        tankModel.move(1)
         players[socket.id].lastAction = Date.now()
-        io.sockets.emit(EventsEnum.PlayerMoved, players[socket.id])
+        io.sockets.emit(EventsEnum.TankMoved, tankModel)
     })
 
     socket.on(EventsEnum.MoveBackward, () => {
-        players[socket.id].tankModel.move(-1)
+        const tankModel = getTankModel(socket.id)
+        if (tankModel === null) {
+            return
+        }
+        tankModel.move(-1)
         players[socket.id].lastAction = Date.now()
-        io.sockets.emit(EventsEnum.PlayerMoved, players[socket.id])
+        io.sockets.emit(EventsEnum.TankMoved, tankModel)
     })
 
     socket.on(EventsEnum.TurretRotate, (angleDiff: number) => {
         if (angleDiff > -.1 && angleDiff < 0.1) {
             return
         }
-
-        players[socket.id].tankModel.addTurretRotation(angleDiff)
+        const tankModel = getTankModel(socket.id)
+        if (tankModel === null) {
+            return
+        }
+        tankModel.addTurretRotation(angleDiff)
         players[socket.id].lastAction = Date.now()
-        io.sockets.emit(EventsEnum.PlayerMoved, players[socket.id])
+        io.sockets.emit(EventsEnum.TankMoved, tankModel)
     })
 
     socket.on(EventsEnum.Fire, (index: number) => {
         const player = players[socket.id]
-
-        if (player.tankModel.weapons[index] === undefined || player.tankModel.weapons[index].timeToReload !== null) {
+        const tankModel = getTankModel(socket.id)
+        if (tankModel === null) {
             return
         }
 
-        const id = uuid()
-        bullets[id] = BulletFactory.create(id, socket.id, player.tankModel.weapons[index].type, player.tankModel)
-        player.tankModel.weapons[index].timeToReload = WeaponService.getTimeToReload(player.tankModel.weapons[index].type)
+        if (tankModel.weapons[index] === undefined || tankModel.weapons[index].timeToReload !== null) {
+            return
+        }
+
+        const bullet = BulletFactory.create(tankModel.id, tankModel.weapons[index].type, tankModel)
+        bullets[bullet.id] = bullet
+        tankModel.weapons[index].timeToReload = WeaponService.getTimeToReload(tankModel.weapons[index].type)
         player.lastAction = Date.now()
         // this bullet will be proceeed in main loop - TODO: is this good solution?
     })
 
     socket.on(EventsEnum.Disconnected, () => {
-        console.log(`A user #${socket.id} has disconnected.`);
+        playersCount--
+        console.log(`A user #${socket.id} has disconnected. (total count: ${playersCount})`);
+
+        for (let id in tanks) {
+            if (tanks[id].playerId === socket.id && tanks[id].destroyed === false) {
+                setDestroydTtl(tanks[id])
+                io.sockets.emit(
+                    EventsEnum.TankDestroyed,
+                    {
+                        bullet: null,
+                        updatedPlayer: null,
+                        oldTank: tanks[id],
+                        newTank: null,
+                    } as TankDestroyed
+                )
+            }
+        }
+
         delete players[socket.id]
         delete sockets[socket.id]
         io.emit(EventsEnum.RemovePlayer, socket.id)
@@ -131,14 +202,19 @@ function updateBullet(bullet: Bullet): Bullet {
     }
 }
 
-function bulletHitSomePlayer(bullet: Bullet): Player|null {
-    for (let id in players) {
-        if (bullet.playerId === id) {
+function bulletHitSomeTank(bullet: Bullet): TankModel|null {
+    for (let id in tanks) {
+        const tankModel = tanks[id]
+        if (
+            (bullet.tankId === tankModel.id && tankModel.destroyed !== false)
+            || tankModel.immortalityTtl !== null
+            || tankModel.destroyed !== false
+        ) {
             continue
         }
-        const player = players[id]
-        if (GeometryService.pointInsidePolygon(bullet, player.tankModel.polygon)) {
-            return player
+
+        if (GeometryService.pointInsidePolygon(bullet, tankModel.polygon)) {
+            return tankModel
         }
     }
     return null
@@ -148,25 +224,48 @@ setInterval(() => {
     let emitedBullets = []
     for (let id in bullets) {
         const bullet = updateBullet(bullets[id])
-        const hittedPlayer = bulletHitSomePlayer(bullet)
-        if (hittedPlayer !== null) {
-            hittedPlayer.tankModel.hp -= bullet.damage
+        const hittedTank = bulletHitSomeTank(bullet)
+        if (hittedTank !== null) {
+            if (hittedTank.destroyed !== false) {
+                continue
+            }
+
+            hittedTank.hp -= bullet.damage
 
             const bulletExplode = {
                 id,
-                hittedPlayerId: hittedPlayer.playerId,
+                hittedTankId: hittedTank.id,
                 x: bullet.x,
                 y: bullet.y,
                 angle: bullet.angle,
+                updatedTank: hittedTank, // TODO: add another changes like destroyed
             } as BulletExplode
 
-            if (hittedPlayer.tankModel.hp <= 0) {
-                hittedPlayer.tankModel = tankModelFactory.createFromPlayer(hittedPlayer, players)
+            if (hittedTank.destroyed) {
+                io.sockets.emit(
+                    EventsEnum.BulletExplode,
+                    bulletExplode
+                )
+                continue
+            }
+
+            if (hittedTank.hp <= 0) {
+                let newTank = null
+                let hittedPlayer = null
+                setDestroydTtl(hittedTank)
+                if (hittedTank.playerId in players) {
+                    newTank = tankModelFactory.create(players[hittedTank.playerId], tanks)
+                    tanks[newTank.id] = newTank
+                    hittedPlayer = players[hittedTank.playerId]
+                    hittedPlayer.tankModelId = newTank.id
+                }
                 io.sockets.emit(
                     EventsEnum.TankDestroyed,
                     {
                         bullet: bulletExplode,
-                        updatedPlayer: hittedPlayer
+                        updatedPlayer: hittedPlayer,
+                        oldTank: hittedTank,
+                        newTank,
                     } as TankDestroyed
                 )
             } else {
@@ -175,8 +274,8 @@ setInterval(() => {
                     bulletExplode
                 )
                 io.sockets.emit(
-                    EventsEnum.PlayerUpdate,
-                    hittedPlayer
+                    EventsEnum.TankUpdate,
+                    hittedTank
                 )
             }
 
@@ -191,8 +290,9 @@ setInterval(() => {
     }
     io.sockets.emit(EventsEnum.BulletsUpdate, emitedBullets)
 
-    for (let id in players) {
-        for (let weapon of players[id].tankModel.weapons) {
+    let removeTanksIds = []
+    for (let id in tanks) {
+        for (let weapon of tanks[id].weapons) {
             if (weapon.timeToReload !== null) {
                 if (weapon.timeToReload.ttl <= UPDATE_INTERVAL) {
                     weapon.timeToReload = null
@@ -202,14 +302,29 @@ setInterval(() => {
             }
         }
 
-        if (players[id].tankModel.immortalityTtl !== null) {
-            if (players[id].tankModel.immortalityTtl <= UPDATE_INTERVAL) {
-                players[id].tankModel.immortalityTtl = null
+        if (tanks[id].immortalityTtl !== null) {
+            if (tanks[id].immortalityTtl <= UPDATE_INTERVAL) {
+                tanks[id].immortalityTtl = null
             } else {
-                players[id].tankModel.immortalityTtl -= UPDATE_INTERVAL
+                tanks[id].immortalityTtl -= UPDATE_INTERVAL
             }
         }
-        // TODO: emit every time or only if there is change prom last emit?
-        sockets[id].emit(EventsEnum.PlayerUpdate, players[id])
+
+        if (tanks[id].destroyed !== false) {
+            tanks[id].destroyed -= UPDATE_INTERVAL
+            if (tanks[id].destroyed <= 0) {
+                io.sockets.emit(EventsEnum.RemoveTank, tanks[id])
+                removeTanksIds.push(id)
+            }
+        }
+
+        if (tanks[id].playerId in sockets) {
+            // TODO: emit every time or only if there is change prom last emit?
+            sockets[tanks[id].playerId].emit(EventsEnum.TankUpdate, tanks[id])
+        }
+    }
+
+    for (let id in removeTanksIds) {
+        delete tanks[id]
     }
 }, UPDATE_INTERVAL)

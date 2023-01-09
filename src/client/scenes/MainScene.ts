@@ -2,9 +2,11 @@ import Bullet from '../../model/Bullet'
 import BulletExplode from '../../model/BulletExplode'
 import { EventsEnum } from '../../model/EventsEnum'
 import MainSceneData from '../../model/MainSceneData'
+import NewPlayerEvent from '../../model/NewPlayerEvent'
 import Player from '../../model/Player'
 import Point from '../../model/Point'
 import TankDestroyed from '../../model/TankDestroyed'
+import TankModel from '../../model/TankModel'
 import Radar from '../objects/Radar'
 import Tank from '../objects/Tank'
 import WeaponIndicator from '../objects/WeaponIndicator'
@@ -32,14 +34,15 @@ export default class MainScene extends Phaser.Scene {
     lastKeyTime: number
     radar: Radar
 
-    tanks: Record<string, {entity: Tank, player: Player}> = {}
-    bullets: Record<string, {entity: Phaser.GameObjects.Sprite, data: Bullet}> = {}
+    players: Record<string, Player> = {}
+    tanks: Record<string, {entity: Tank, tankModel: TankModel}> = {}
+    bullets: Record<string, {entity: Phaser.GameObjects.Sprite, bullet: Bullet}> = {}
 
     constructor() {
         super('MainScene');
     }
 
-	create({socket, players}: MainSceneData): void {
+	create({socket, players, tanks}: MainSceneData): void {
         this.socket = socket
 
         if (! (this.socket.id in players)) {
@@ -49,15 +52,16 @@ export default class MainScene extends Phaser.Scene {
         this.input.setPollAlways()
         this.input.mouse.disableContextMenu()
 
-        this.loadInitSituation(players)
+        this.loadInitSituation(players, tanks)
 
-        this.socket.on(EventsEnum.NewPlayer, (player: Player) => this.onNewPlayer(player))
-        this.socket.on(EventsEnum.PlayerMoved, (player: Player) => this.onPlayerMoved(player))
+        this.socket.on(EventsEnum.NewPlayer, (newPlayerEvent: NewPlayerEvent) => this.onNewPlayer(newPlayerEvent))
+        this.socket.on(EventsEnum.TankMoved, (tank: TankModel) => this.onTankMoved(tank))
         this.socket.on(EventsEnum.RemovePlayer, (id: string) => this.onRemovePlayer(id))
-        this.socket.on(EventsEnum.PlayerUpdate, (player: Player) => this.onPlayerUpdate(player))
+        this.socket.on(EventsEnum.TankUpdate, (tank: TankModel) => this.onTankUpdate(tank))
         this.socket.on(EventsEnum.BulletsUpdate, (bullets: Record<string, Bullet>) => this.onBulletsUpdate(bullets))
         this.socket.on(EventsEnum.BulletExplode, (bulletExplode: BulletExplode) => this.onBulletExplode(bulletExplode))
         this.socket.on(EventsEnum.TankDestroyed, (tankDestroyed: TankDestroyed) => this.onTankDestroyed(tankDestroyed))
+        this.socket.on(EventsEnum.RemoveTank, (tank: TankModel) => this.onRemoveTank(tank))
 
         this.cursorKeys = this.input.keyboard.addKeys({
             up: Phaser.Input.Keyboard.KeyCodes.UP,
@@ -77,32 +81,78 @@ export default class MainScene extends Phaser.Scene {
         this.lastKeyTime = Date.now()
 	}
 
-    loadInitSituation(players: Record<string, Player>): void {
+    getPlayerByTankModel(tankModel: TankModel): Player|null {
+        return tankModel.playerId in this.players ? this.players[tankModel.playerId] : null
+    }
+
+    getPlayerByTankId(tankId: string): Player|null {
+        if (! (tankId in this.tanks)) {
+            return null
+        }
+        return this.getPlayerByTankModel(this.tanks[tankId].tankModel)
+    }
+
+    getActualPlayerTankModel(): TankModel|null {
+        if (! (this.socket.id in this.players)) {
+            return null
+        }
+        const playerTankId = this.players[this.socket.id].tankModelId
+        if (playerTankId === null) {
+            return null
+        }
+        return playerTankId in this.tanks ? this.tanks[playerTankId].tankModel : null
+    }
+
+    getTankModelByTankId(tankId: string): TankModel|null {
+        if (! (tankId in this.tanks)) {
+            return null
+        }
+        return this.tanks[tankId].tankModel
+    }
+
+    getPlayerIdByTankId(tankId: string): string|null {
+        return tankId in this.tanks ? this.tanks[tankId].tankModel.playerId : null
+    }
+
+    getPlayerByPlayerId(playerId: string): Player|null {
+        return playerId in this.players ? this.players[playerId] : null
+    }
+
+    setCamerasAndWeapons(tank: {entity: Tank, tankModel: TankModel}) {
+        this.cameras.main.startFollow(tank.entity)
+        this.cameras.main.setFollowOffset(-this.cameras.main.centerX/2, -this.cameras.main.centerY/2)
+        this.background.tilePositionX = tank.tankModel.center.x / this.background.tileScaleX
+        this.background.tilePositionY = tank.tankModel.center.y / this.background.tileScaleY
+
+        for (let weaponIndicator of this.weaponIndicators) {
+            weaponIndicator.destroy()
+        }
+        this.weaponIndicators = []
+        for (let i=0; i<tank.tankModel.weapons.length; i++) {
+            const weapon = tank.tankModel.weapons[i]
+            const weaponIndicator = new WeaponIndicator(this, 150 * (i + 1), 100, weapon.type)
+            this.add.existing(weaponIndicator)
+            this.weaponIndicators.push(weaponIndicator)
+        }
+    }
+
+    loadInitSituation(players: Record<string, Player>, tanks: Record<string, TankModel>): void {
         this.background = this.add.tileSprite(0, 0, this.cameras.main.width, this.cameras.main.height, 'background')
             .setTileScale(.5, .5)
             .setScrollFactor(0)
 
         // TODO: move to right
-        this.radar = new Radar(this, 200, 200, this.socket.id, players)
+        this.radar = new Radar(this, 200, 200, this.socket.id, tanks)
         this.add.existing(this.radar)
 
-        for (let id in players) {
-            if (this.socket.id === id) {
-                const tank = this.createTank(players[id])
+        this.players = players
 
-                for (let i=0; i<players[id].tankModel.weapons.length; i++) {
-                    const weapon = players[id].tankModel.weapons[i]
-                    const weaponIndicator = new WeaponIndicator(this, 150 * (i + 1), 100, weapon.type)
-                    this.add.existing(weaponIndicator)
-                    this.weaponIndicators.push(weaponIndicator)
-                }
-
-                this.cameras.main.startFollow(tank.entity)
-                this.cameras.main.setFollowOffset(-this.cameras.main.centerX/2, -this.cameras.main.centerY/2)
-                this.background.tilePositionX = players[id].tankModel.center.x / this.background.tileScaleX
-                this.background.tilePositionY = players[id].tankModel.center.y / this.background.tileScaleY
+        for (let id in tanks) {
+            if (this.socket.id === tanks[id].playerId) {
+                const tank = this.createTank(tanks[id])
+                this.setCamerasAndWeapons(tank)
             } else {
-                this.createTank(players[id])
+                this.createTank(tanks[id])
             }
         }
     }
@@ -124,7 +174,10 @@ export default class MainScene extends Phaser.Scene {
             return
         }
 
-        const tankModel = this.tanks[this.socket.id].player.tankModel
+        const tankModel = this.getActualPlayerTankModel()
+        if (tankModel === null) {
+            return
+        }
 
         const prevAngleToPointer = Phaser.Math.RadToDeg(Phaser.Math.Angle.Between(
             tankModel.center.x + tankModel.turretPosition.x,
@@ -151,48 +204,53 @@ export default class MainScene extends Phaser.Scene {
         }
     }
 
-    createTank(player: Player): {entity: Tank, player: Player} {
-        const entity = new Tank(this, player)
+    createTank(tank: TankModel): {entity: Tank, tankModel: TankModel} {
+        const entity = new Tank(this, tank, this.getPlayerByPlayerId(tank.playerId))
         this.add.existing(entity)
+
+        if (tank.destroyed !== false) {
+            entity.destroyed()
+        }
 
         const data = {
             entity,
-            player
+            tankModel: tank
         }
-        this.tanks[player.playerId] = data
+        this.tanks[tank.id] = data
         return data
     }
 
-    onNewPlayer(player: Player): void {
-        this.createTank(player)
+    onNewPlayer(newPlayerEvent: NewPlayerEvent): void {
+        this.players[newPlayerEvent.player.playerId] = newPlayerEvent.player
+        this.createTank(newPlayerEvent.tank)
     }
 
-    onPlayerMoved(player: Player): void {
-        this.updateTank(player)
+    onTankMoved(tank: TankModel): void {
+        this.updateTank(tank)
     }
 
     onRemovePlayer(id: string): void {
-        if (id in this.tanks) {
-            this.tanks[id].entity.destroy()
-            delete this.tanks[id]
-        }
+        delete this.players[id]
     }
 
-    onPlayerUpdate(player: Player): void {
-        if (! (player.playerId in this.tanks)) {
+    onTankUpdate(tankModel: TankModel): void {
+        if (! (tankModel.id in this.tanks)) {
             return
         }
 
         // TODO: do this only in one place
-        this.tanks[player.playerId].entity.update(player)
-        this.tanks[player.playerId].player = player
-        for (let i=0; i<player.tankModel.weapons.length; i++) {
-            // TODO: check if there is more/less weapons
-            const timeToReload = player.tankModel.weapons[i].timeToReload
-            if (timeToReload) {
-                this.weaponIndicators[i].setTimeToReload((timeToReload.total - timeToReload.ttl) / timeToReload.total)
-            } else {
-                this.weaponIndicators[i].setTimeToReload(1)
+        this.tanks[tankModel.id].entity.update(tankModel, this.getPlayerByTankModel(tankModel))
+        this.tanks[tankModel.id].tankModel = tankModel
+
+        if (tankModel.playerId === this.socket.id) {
+            for (let i=0; i<tankModel.weapons.length; i++) {
+                // TODO: check if there is more/less weapons
+                const timeToReload = tankModel.weapons[i].timeToReload
+                if (timeToReload) {
+                    this.weaponIndicators[i].setTimeToReload((timeToReload.total - timeToReload.ttl) / timeToReload.total)
+                } else {
+                    this.weaponIndicators[i].setTimeToReload(1)
+                }
             }
         }
     }
@@ -204,7 +262,7 @@ export default class MainScene extends Phaser.Scene {
                 this.bullets[id].entity.x = bullets[id].x
                 this.bullets[id].entity.y = bullets[id].y
                 this.bullets[id].entity.angle = bullets[id].angle
-                this.bullets[id].data = bullets[id]
+                this.bullets[id].bullet = bullets[id]
             } else {
                 // create
                 const fire = this.add
@@ -214,10 +272,13 @@ export default class MainScene extends Phaser.Scene {
                 fire.angle = bullets[id].angle
                 this.bullets[id] = {
                     entity: fire,
-                    data: bullets[id]
+                    bullet: bullets[id]
                 }
-                this.cameras.main.shake(250)
-                this.tanks[bullets[id].playerId].entity.exhaust(this.tanks[bullets[id].playerId].player, bullets[id], this.tanks[this.socket.id].player)
+
+                if (this.getPlayerIdByTankId(bullets[id].tankId) === this.socket.id) {
+                    this.cameras.main.shake(250)
+                }
+                this.tanks[bullets[id].tankId].entity.exhaust(this.tanks[bullets[id].tankId].tankModel, bullets[id], this.getActualPlayerTankModel())
             }
         }
         for (let id in this.bullets) {
@@ -230,68 +291,98 @@ export default class MainScene extends Phaser.Scene {
     }
 
     onBulletExplode(bulletExplode: BulletExplode): void {
-        const hitted = this.tanks[bulletExplode.hittedPlayerId]
-        hitted.entity.impact(
+        if (! (bulletExplode.hittedTankId in this.tanks)) {
+            return
+        }
+
+        const hittedTank = this.tanks[bulletExplode.hittedTankId]
+        hittedTank.entity.impact(
             bulletExplode,
-            hitted.player,
-            this.tanks[this.socket.id].player
+            hittedTank.tankModel,
+            this.getActualPlayerTankModel()
         )
-        if (bulletExplode.hittedPlayerId === this.socket.id) {
+
+        const hittedTankModel = bulletExplode.updatedTank
+        if (hittedTankModel !== null && hittedTankModel.destroyed === false && hittedTankModel.playerId === this.socket.id) {
             this.cameras.main.shake(250)
-            if (hitted.player.tankModel.hp < hitted.player.tankModel.maxHp / 2) {
+            if (hittedTankModel.hp < hittedTankModel.maxHp / 2) {
                 this.cameras.main.flash(250, 255, 0, 0)
             }
         }
     }
 
     onTankDestroyed(tankDestroyed: TankDestroyed): void {
-        this.onBulletExplode(tankDestroyed.bullet)
-        this.onPlayerUpdate(tankDestroyed.updatedPlayer)
+        if (tankDestroyed.bullet) {
+            this.onBulletExplode(tankDestroyed.bullet)
+        }
+        this.updateTank(tankDestroyed.oldTank)
+        this.tanks[tankDestroyed.oldTank.id].entity.destroyed()
+        if (tankDestroyed.newTank !== null) {
+            const tank = this.createTank(tankDestroyed.newTank)
+            if (tankDestroyed.updatedPlayer.playerId === this.socket.id) {
+                this.setCamerasAndWeapons(tank)
+            }
+        }
+        if (tankDestroyed.updatedPlayer !== null) {
+            this.updatePlayer(tankDestroyed.updatedPlayer)
+        }
     }
 
-    updateBackground(player: Player, playerOld: Player): void {
+    onRemoveTank(tank: TankModel): void {
+        if (! (tank.id in this.tanks)) {
+            return
+        }
+
+        this.tanks[tank.id].entity.destroy()
+        delete this.tanks[tank.id]
+    }
+
+    updateBackground(tankModel: TankModel, tankModelOld: TankModel): void {
         if (this.background === null) {
             return
         }
 
-        const diffX = player.tankModel.center.x - playerOld.tankModel.center.x
-        const diffY = player.tankModel.center.y - playerOld.tankModel.center.y
+        const diffX = tankModel.center.x - tankModelOld.center.x
+        const diffY = tankModel.center.y - tankModelOld.center.y
         this.background.tilePositionX += diffX / this.background.tileScaleX
         this.background.tilePositionY += diffY / this.background.tileScaleY
     }
 
-    updateTank(player: Player): void {
-        if (! player.playerId in this.tanks) {
+    updateTank(tankModel: TankModel): void {
+        if (! (tankModel.id in this.tanks)) {
             return
         }
 
-        if (this.socket.id === player.playerId) {
-            this.updateBackground(player, this.tanks[player.playerId].player)
+        if (this.socket.id === tankModel.playerId) {
+            this.updateBackground(tankModel, this.tanks[tankModel.id].tankModel)
         }
 
-        this.tanks[player.playerId].entity.update(player)
-        this.tanks[player.playerId].player = player
+        this.tanks[tankModel.id].entity.update(tankModel, this.getPlayerByTankModel(tankModel))
+        this.tanks[tankModel.id].tankModel = tankModel
+    }
+
+    updatePlayer(player: Player): void {
+        if (! (player.playerId in this.players)) {
+            return
+        }
+        this.players[player.playerId] = player
     }
 
 	update(): void {
-        if (! (this.socket.id in this.tanks)) {
-            return
-        }
-
         this.processKeys()
 
-        let itemsForRadar = {} as Record<string, Player>
+        let itemsForRadar = {} as Record<string, TankModel>
         for (let id in this.tanks) {
-            itemsForRadar[id] = this.tanks[id].player
+            itemsForRadar[id] = this.tanks[id].tankModel
         }
-        this.radar.drawPlayers(itemsForRadar)
+        this.radar.drawTanks(itemsForRadar)
 	}
 
     processKeys(): void {
         const actualTime = Date.now()
-        if (actualTime - this.lastKeyTime < KEY_DELTA) {
+        /*if (actualTime - this.lastKeyTime < KEY_DELTA) {
             return
-        }
+        } - TODO: make some measures on this */
 
         if (this.cursorKeys.left.isDown || this.cursorKeys.a.isDown) {
             this.socket.emit(EventsEnum.BodyRotateLeft)

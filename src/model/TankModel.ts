@@ -1,4 +1,5 @@
 import GeometryService from '../services/GeometryService'
+import Utils from '../services/Utils'
 import Point from './Point'
 import Polygon from './Polygon'
 import { TankColorEnum } from './TankColorEnum'
@@ -13,6 +14,7 @@ const computeBarrelEndPosition = (barrelEndYOffset: number, turretPosition: Poin
 }
 
 export type TankModelConstructor = {
+    playerId: string,
     center: Point,
     width: number,
     height: number,
@@ -28,6 +30,8 @@ export type TankModelConstructor = {
 }
 
 export default class TankModel {
+    id: string
+    playerId: string
     center: Point
     width: number
     height: number
@@ -41,11 +45,14 @@ export default class TankModel {
     barrelEndPosition: Point
     hp: number
     maxHp: number
+    destroyed: number|false
     immortalityTtl: number|null
     weapons: Array<Weapon>
     color: TankColorEnum
 
     constructor(data: TankModelConstructor) {
+        this.id = Utils.uuid()
+        this.playerId = data.playerId
         this.center = data.center
         this.width = data.width
         this.height = data.height
@@ -56,6 +63,7 @@ export default class TankModel {
         this.barrelEndYOffset = data.barrelEndYOffset
         this.hp = data.maxHp
         this.maxHp = data.maxHp
+        this.destroyed = false
         this.immortalityTtl = data.immortalityTtl
         this.weapons = data.weapons
         this.color = data.color

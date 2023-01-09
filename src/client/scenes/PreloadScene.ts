@@ -1,6 +1,8 @@
 import Player from '../../model/Player';
 import io from 'socket.io-client'
 import MainSceneData from '../../model/MainSceneData';
+import { EventsEnum } from '../../model/EventsEnum';
+import InitStateEvent from '../../model/InitStateEvent';
 
 export default class Preload extends Phaser.Scene {
     socket: SocketIOClient.Socket;
@@ -42,6 +44,16 @@ export default class Preload extends Phaser.Scene {
         this.load.image('impact1', 'assets/Effects/Sprites/Sprite_Fire_Shots_Impact_A_001.png')
         this.load.image('impact2', 'assets/Effects/Sprites/Sprite_Fire_Shots_Impact_A_002.png')
         this.load.image('impact3', 'assets/Effects/Sprites/Sprite_Fire_Shots_Impact_A_003.png')
+        // explosion
+        this.load.image('explosion0', 'assets/Effects/Sprites/Sprite_Effects_Explosion_000.png')
+        this.load.image('explosion1', 'assets/Effects/Sprites/Sprite_Effects_Explosion_001.png')
+        this.load.image('explosion2', 'assets/Effects/Sprites/Sprite_Effects_Explosion_002.png')
+        this.load.image('explosion3', 'assets/Effects/Sprites/Sprite_Effects_Explosion_003.png')
+        this.load.image('explosion4', 'assets/Effects/Sprites/Sprite_Effects_Explosion_004.png')
+        this.load.image('explosion5', 'assets/Effects/Sprites/Sprite_Effects_Explosion_005.png')
+        this.load.image('explosion6', 'assets/Effects/Sprites/Sprite_Effects_Explosion_006.png')
+        this.load.image('explosion7', 'assets/Effects/Sprites/Sprite_Effects_Explosion_007.png')
+        this.load.image('explosion8', 'assets/Effects/Sprites/Sprite_Effects_Explosion_008.png')
         // music
         this.load.audio('heavy-shot', 'assets/music/heavy-shot.wav')
         this.load.audio('granade-shot', 'assets/music/granade-shot.wav')
@@ -79,12 +91,30 @@ export default class Preload extends Phaser.Scene {
             repeat: 5
         })
 
+        this.anims.create({
+            key: 'explosion',
+            frames: [
+                {key: 'explosion0'},
+                {key: 'explosion1'},
+                {key: 'explosion2'},
+                {key: 'explosion3'},
+                {key: 'explosion4'},
+                {key: 'explosion5'},
+                {key: 'explosion6'},
+                {key: 'explosion7'},
+                {key: 'explosion8'},
+            ],
+            frameRate: 16,
+            repeat: -1
+        })
+
         this.socket = io()
 
-        this.socket.on('init-state', (players: Record<string, Player>) => {
+        this.socket.on(EventsEnum.InitState, (initStateEvent: InitStateEvent) => {
             this.scene.start('MainScene', {
                 socket: this.socket,
-                players
+                players: initStateEvent.players,
+                tanks: initStateEvent.tanks,
             } as MainSceneData)
         })
 	}

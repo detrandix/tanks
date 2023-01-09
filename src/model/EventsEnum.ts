@@ -4,10 +4,11 @@ export enum EventsEnum {
     NewPlayer = 'new-player',
     RemovePlayer = 'remove-player',
     BulletsUpdate = 'bullets-player',
-    PlayerUpdate = 'update-player',
-    PlayerMoved = 'player-moved',
     BulletExplode = 'bullet-explode',
+    TankMoved = 'tank-moved',
+    TankUpdate = 'tank-update',
     TankDestroyed = 'tank-destroyed',
+    RemoveTank = 'remove-tank',
     // revieved states
     Connection = 'connection',
     BodyRotateLeft = 'body-rotate-left',

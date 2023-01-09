@@ -8,5 +8,6 @@ export default interface Player {
     playerId: string,
     name: string,
     preferedColor: TankColorEnum,
-    tankModel: TankModel,
+    //tankModel: TankModel,
+    tankModelId: string|null,
 }

@@ -8,14 +8,14 @@ const absoluteDistance = (x1: number, y1: number, x2: number, y2: number) => {
     return Math.sqrt(Math.pow(Math.abs(x2 - x1), 2) + Math.pow(Math.abs(y2 - y1), 2))
 }
 
-const findAvailablePosition = (players: Record<string, Player>): Point => {
+const findAvailablePosition = (tanks: Record<string, TankModel>): Point => {
     let x, y, availablePosition
     do {
         x = Math.floor(Math.random() * 800)
         y = Math.floor(Math.random() * 800)
         availablePosition = true
-        for (let id in players) {
-            const {x: centerX, y: centerY} = players[id].tankModel.center
+        for (let id in tanks) {
+            const {x: centerX, y: centerY} = tanks[id].center
             if (absoluteDistance(x, y, centerX, centerY) < 200) {
                 availablePosition = false
                 break
@@ -26,9 +26,10 @@ const findAvailablePosition = (players: Record<string, Player>): Point => {
 }
 
 export default class TankModelFactory {
-    create(color: TankColorEnum, players: Record<string, Player>): TankModel {
-        const availablePosition = findAvailablePosition(players)
+    create(player: Player, tanks: Record<string, TankModel>): TankModel {
+        const availablePosition = findAvailablePosition(tanks)
         return new TankModel({
+            playerId: player.playerId,
             center: availablePosition,
             width: 164,
             height: 256,
@@ -43,11 +44,7 @@ export default class TankModelFactory {
                 {type: WeaponsEnum.Heavy, timeToReload: null},
                 {type: WeaponsEnum.Granade, timeToReload: null},
             ],
-            color
+            color: player.preferedColor
         } as TankModelConstructor)
-    }
-
-    createFromPlayer(player: Player, players: Record<string, Player>): TankModel {
-        return this.create(player.preferedColor, players)
     }
 }

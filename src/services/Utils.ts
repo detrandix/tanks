@@ -6,4 +6,8 @@ export default class Utils {
         const enumKey = values[Math.floor(Math.random() * values.length)]
         return enumKey as keyof typeof TankColorEnum
     }
+
+    static uuid(): string {
+        return crypto.randomUUID()
+    }
 }

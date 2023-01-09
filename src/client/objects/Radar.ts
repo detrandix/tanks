@@ -12,7 +12,7 @@ export default class Radar extends Phaser.GameObjects.Container {
     lineAngle: number
     dotsContainer: Phaser.GameObjects.Container
 
-    constructor(scene: Phaser.Scene, x: number, y: number, mainPlayerId: string, players: Record<string, Player>) {
+    constructor(scene: Phaser.Scene, x: number, y: number, mainPlayerId: string, tanks: Record<string, TankModel>) {
         super(scene, x, y)
         this.setScrollFactor(0)
         this.setDepth(100)
@@ -24,7 +24,7 @@ export default class Radar extends Phaser.GameObjects.Container {
         this.dotsContainer = new Phaser.GameObjects.Container(scene, 0, 0)
         this.add(this.dotsContainer)
 
-        this.drawPlayers(players)
+        this.drawTanks(tanks)
     }
 
     createBackgroundCircle() {
@@ -61,28 +61,38 @@ export default class Radar extends Phaser.GameObjects.Container {
         })
     }
 
-    drawPlayers(players: Record<string, Player>) {
+    drawTanks(tanks: Record<string, TankModel>): void {
         this.dotsContainer.removeAll()
 
-        const mainPlayer = players[this.mainPlayerId]
-        for (let id in players) {
-            if (id === this.mainPlayerId) {
+        let mainPlayerTank = null
+        for (let id in tanks) {
+            if (tanks[id].playerId === this.mainPlayerId) {
+                mainPlayerTank = tanks[id]
+                break
+            }
+        }
+        if (! mainPlayerTank) {
+            return
+        }
+
+        for (let id in tanks) {
+            if (id === this.mainPlayerId || tanks[id].destroyed !== false) {
                 continue
             }
 
-            const player = players[id]
+            const tank = tanks[id]
             const distance = Phaser.Math.Distance.Between(
-                player.tankModel.center.x,
-                player.tankModel.center.y,
-                mainPlayer.tankModel.center.x,
-                mainPlayer.tankModel.center.y
+                tank.center.x,
+                tank.center.y,
+                mainPlayerTank.center.x,
+                mainPlayerTank.center.y
             )
 
             const angle = Phaser.Math.Angle.Between(
-                player.tankModel.center.x,
-                player.tankModel.center.y,
-                mainPlayer.tankModel.center.x,
-                mainPlayer.tankModel.center.y
+                tank.center.x,
+                tank.center.y,
+                mainPlayerTank.center.x,
+                mainPlayerTank.center.y
             ) + Math.PI
 
             const circleDistace = distance <= MAX_DISTANCE ? CIRCLE_RADIUS * (distance / MAX_DISTANCE) : CIRCLE_RADIUS
