@@ -1,7 +1,39 @@
 #!/bin/sh
 
-# TODO: check server is running, also make port as parameter
-# TODO: check localtunnel is installed
-until npx lt --port 3000 --subdomain tanks; do
+usage="Usage: $(basename "$0") [-h] [-p port] [-s subdomain]
+
+where:
+    -h  show this help text
+    -p  port to expose by localtunnel (default: 3000)
+    -s  subdomain where localtunnel by running (default none, so subdomain will be generated)"
+
+port=3000
+subdomain=
+while getopts ':hp:s:' option; do
+  case "$option" in
+    h) echo "$usage"
+       exit
+       ;;
+    p) port=$OPTARG
+       ;;
+    s) subdomain=$OPTARG
+       ;;
+    :) printf "missing argument for -%s\n" "$OPTARG" >&2
+       echo "$usage" >&2
+       exit 1
+       ;;
+   \?) printf "illegal option: -%s\n" "$OPTARG" >&2
+       echo "$usage" >&2
+       exit 1
+       ;;
+  esac
+done
+
+if [ `npm list -g | grep -c localtunnel` -eq 0 ]; then
+  echo 'Error: localtunnel is not installed.' >&2
+  exit 1
+fi
+
+until npx lt --port $port --subdomain $subdomain; do
     :
 done

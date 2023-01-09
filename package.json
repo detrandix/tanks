@@ -5,7 +5,6 @@
   "main": "index.js",
   "scripts": {
     "start": "npm run dev",
-    "lt": "bin/start-localtunnel",
     "dev": "npm-run-all --parallel server client",
     "server": "npm-run-all --parallel server:*",
     "server:webpack": "webpack --config webpack/webpack.server.cjs --watch",

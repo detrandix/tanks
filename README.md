@@ -33,16 +33,19 @@ npm install -g localtunnel
 then you can start expose your local server by running
 
 ```
-npm run lt
+./bin/start-localtunnel
 ```
 
-(server must be running)
+For additional informations see help `./bin/start-localtunnel -h`
 
 ## Game control
 
 `up`, `left`, `right`, `down` / `w`, `a`, `s`, `d` for control tank movement
+
 `left click` / `space` use weapon 1
+
 `right click` use weapon 2
+
 `mouse move` for controll turret rotation (it's relative to mouse position)
 
 ## License
