@@ -7,10 +7,10 @@ import Player from '../../model/Player'
 import Point from '../../model/Point'
 import TankDestroyed from '../../model/TankDestroyed'
 import TankModel from '../../model/TankModel'
-import PlayersList from '../objects/PlayersList'
-import Radar from '../objects/Radar'
-import Tank from '../objects/Tank'
-import WeaponIndicator from '../objects/WeaponIndicator'
+import PlayersList from '../components/PlayersList'
+import Radar from '../components/Radar'
+import Tank from '../components/Tank'
+import WeaponIndicator from '../components/WeaponIndicator'
 
 const KEY_DELTA = 100
 
@@ -428,5 +428,18 @@ export default class MainScene extends Phaser.Scene {
         }
 
         this.lastKeyTime = actualTime
+    }
+
+    resize(diffWidth: number, diffHeight: number) {
+        this.background.width += 2 * diffWidth
+        this.background.height += 2 * diffHeight
+        this.background.tilePositionX += -1.5 * diffWidth / this.background.tileScaleX
+        this.background.tilePositionY += -1.5 * diffHeight / this.background.tileScaleY
+
+        for (let weaponIndicator of this.weaponIndicators) {
+            weaponIndicator.y += diffHeight
+        }
+
+        this.playersList.x += diffWidth
     }
 }

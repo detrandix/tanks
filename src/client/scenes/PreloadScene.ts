@@ -3,7 +3,7 @@ import io from 'socket.io-client'
 import MainSceneData from '../../model/MainSceneData';
 import { EventsEnum } from '../../model/EventsEnum';
 import InitStateEvent from '../../model/InitStateEvent';
-import ProgressBar from '../objects/ProgressBar';
+import ProgressBar from '../components/ProgressBar';
 
 export default class Preload extends Phaser.Scene {
     socket: SocketIOClient.Socket;
