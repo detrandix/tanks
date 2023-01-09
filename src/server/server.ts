@@ -206,9 +206,8 @@ function bulletHitSomeTank(bullet: Bullet): TankModel|null {
     for (let id in tanks) {
         const tankModel = tanks[id]
         if (
-            (bullet.tankId === tankModel.id && tankModel.destroyed !== false)
-            || tankModel.immortalityTtl !== null
-            || tankModel.destroyed !== false
+            (bullet.tankId === tankModel.id && tankModel.destroyed === false) // skip own live tank
+            || tankModel.immortalityTtl !== null // skip immortal tanks
         ) {
             continue
         }
