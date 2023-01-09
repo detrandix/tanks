@@ -1,3 +1,4 @@
+import Utils from '../services/Utils'
 import config from './config'
 
 export default class Game extends Phaser.Game {
@@ -7,10 +8,12 @@ export default class Game extends Phaser.Game {
   }
 
   resize() {
+    const normalizedDPR = Utils.getNormalizedDPR()
+
     const actualWidth = this.scale.gameSize.width
     const actualHeight = this.scale.gameSize.height
-    const newWidth = window.innerWidth * window.devicePixelRatio
-    const newHeight = window.innerHeight * window.devicePixelRatio
+    const newWidth = window.innerWidth * normalizedDPR
+    const newHeight = window.innerHeight * normalizedDPR
     const diffWidth = newWidth - actualWidth
     const diffHeight = newHeight - actualHeight
     this.scale.resize(newWidth, newHeight)

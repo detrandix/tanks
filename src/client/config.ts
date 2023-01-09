@@ -1,16 +1,9 @@
 import PreloadScene from './scenes/PreloadScene'
 import MainScene from './scenes/MainScene'
 import GameOverScene from './scenes/GameOverScene'
+import Utils from '../services/Utils'
 
-const getNormalizedDPR = (): number => {
-  const dpr = window.devicePixelRatio
-  if (dpr === 1 || dpr === 2) {
-    return dpr
-  }
-  return 2 // actually we will support only retina display
-}
-
-const normalizedDPR = getNormalizedDPR()
+const normalizedDPR = Utils.getNormalizedDPR()
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
   width: window.innerWidth * normalizedDPR,
