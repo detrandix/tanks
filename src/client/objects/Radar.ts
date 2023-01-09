@@ -62,6 +62,9 @@ export default class Radar extends Phaser.GameObjects.Container {
     }
 
     drawTanks(tanks: Record<string, TankModel>): void {
+        for (let children of this.dotsContainer.list) {
+            children.destroy()
+        }
         this.dotsContainer.removeAll()
 
         let mainPlayerTank = null
@@ -76,7 +79,7 @@ export default class Radar extends Phaser.GameObjects.Container {
         }
 
         for (let id in tanks) {
-            if (id === this.mainPlayerId || tanks[id].destroyed !== false) {
+            if (tanks[id].playerId === this.mainPlayerId) {
                 continue
             }
 
@@ -100,7 +103,8 @@ export default class Radar extends Phaser.GameObjects.Container {
             let x = circleDistace * Math.cos(angle)
             let y = circleDistace * Math.sin(angle)
 
-            let circle = this.scene.add.circle(x, y, 3, 0x00ff00)
+            const color = tanks[id].destroyed !== false ? 0xff0000 : 0x00ff00
+            let circle = this.scene.add.circle(x, y, 3, color)
             this.dotsContainer.add(circle)
         }
     }
