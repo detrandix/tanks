@@ -1,12 +1,11 @@
 export default class GameOver extends Phaser.Scene {
     constructor() {
-        super('GameOverScene');
+        super('GameOverScene')
     }
 
-	create() {
-	}
+    create() {}
 
-	restartGame() {
-		this.scene.start('MainScene');
-	}
+    restartGame() {
+        this.scene.start('MainScene')
+    }
 }

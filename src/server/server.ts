@@ -22,7 +22,7 @@ import TankSetupFactory from '../services/TankSetupFactory'
 
 const app = express()
 const server = http.createServer(app)
-const io = new Server(server, { cors: { origin: '*' } });
+const io = new Server(server, { cors: { origin: '*' } })
 
 const port = process.env.PORT || 3000
 
@@ -44,7 +44,7 @@ const tanks: Record<string, TankModel> = {}
 const sockets = {}
 const bullets: Record<string, Bullet> = {}
 
-const DEG2RAD = Math.PI/180
+const DEG2RAD = Math.PI / 180
 const deg2rad = (deg: number) => deg * DEG2RAD
 
 // TODO: move to some DI
@@ -60,8 +60,8 @@ const initPlayer = (playerId: string): Player => {
     return players[playerId]
 }
 
-const getTankModel = (playerId: string): TankModel|null => {
-    if (! (playerId in players)) {
+const getTankModel = (playerId: string): TankModel | null => {
+    if (!(playerId in players)) {
         return null
     }
     const tankModelId = players[playerId].tankModelId
@@ -83,11 +83,11 @@ io.on(EventsEnum.Connection, (socket) => {
     initPlayer(socket.id)
     socket.emit(EventsEnum.InitState, {
         players,
-        tanks
+        tanks,
     } as InitStateEvent) // send the players object to the new player
     socket.broadcast.emit(EventsEnum.NewPlayer, {
         player: players[socket.id],
-        tank: tanks[players[socket.id].tankModelId as string]
+        tank: tanks[players[socket.id].tankModelId as string],
     } as NewPlayerEvent) // update all other players of the new player
 
     socket.on(EventsEnum.BodyRotateLeft, () => {
@@ -131,7 +131,7 @@ io.on(EventsEnum.Connection, (socket) => {
     })
 
     socket.on(EventsEnum.TurretRotate, (angleDiff: number) => {
-        if (angleDiff > -.1 && angleDiff < 0.1) {
+        if (angleDiff > -0.1 && angleDiff < 0.1) {
             return
         }
         const tankModel = getTankModel(socket.id)
@@ -163,21 +163,18 @@ io.on(EventsEnum.Connection, (socket) => {
 
     socket.on(EventsEnum.Disconnected, () => {
         playersCount--
-        console.log(`A user #${socket.id} has disconnected. (total count: ${playersCount})`);
+        console.log(`A user #${socket.id} has disconnected. (total count: ${playersCount})`)
 
-        for (let id in tanks) {
+        for (const id in tanks) {
             if (tanks[id].playerId === socket.id && tanks[id].destroyed === false) {
                 tanks[id].hp = 0
                 setDestroydTtl(tanks[id])
-                io.sockets.emit(
-                    EventsEnum.TankDestroyed,
-                    {
-                        bullet: null,
-                        updatedPlayer: null,
-                        oldTank: tanks[id],
-                        newTank: null,
-                    } as TankDestroyed
-                )
+                io.sockets.emit(EventsEnum.TankDestroyed, {
+                    bullet: null,
+                    updatedPlayer: null,
+                    oldTank: tanks[id],
+                    newTank: null,
+                } as TankDestroyed)
             }
         }
 
@@ -205,12 +202,12 @@ function updateBullet(bullet: Bullet): Bullet {
     }
 }
 
-function bulletHitSomeTank(bullet: Bullet): TankModel|null {
-    for (let id in tanks) {
+function bulletHitSomeTank(bullet: Bullet): TankModel | null {
+    for (const id in tanks) {
         const tankModel = tanks[id]
         if (
-            (bullet.tankId === tankModel.id && tankModel.destroyed === false) // skip own live tank
-            || tankModel.immortalityTtl !== null // skip immortal tanks
+            (bullet.tankId === tankModel.id && tankModel.destroyed === false) || // skip own live tank
+            tankModel.immortalityTtl !== null // skip immortal tanks
         ) {
             continue
         }
@@ -223,8 +220,8 @@ function bulletHitSomeTank(bullet: Bullet): TankModel|null {
 }
 
 setInterval(() => {
-    let emitedBullets = []
-    for (let id in bullets) {
+    const emitedBullets = []
+    for (const id in bullets) {
         const bullet = updateBullet(bullets[id])
         const hittedTank = bulletHitSomeTank(bullet)
         if (hittedTank !== null) {
@@ -244,10 +241,7 @@ setInterval(() => {
             } as BulletExplode
 
             if (hittedTank.destroyed) {
-                io.sockets.emit(
-                    EventsEnum.BulletExplode,
-                    bulletExplode
-                )
+                io.sockets.emit(EventsEnum.BulletExplode, bulletExplode)
                 continue
             }
 
@@ -261,24 +255,15 @@ setInterval(() => {
                     hittedPlayer = players[hittedTank.playerId]
                     hittedPlayer.tankModelId = newTank.id
                 }
-                io.sockets.emit(
-                    EventsEnum.TankDestroyed,
-                    {
-                        bullet: bulletExplode,
-                        updatedPlayer: hittedPlayer,
-                        oldTank: hittedTank,
-                        newTank,
-                    } as TankDestroyed
-                )
+                io.sockets.emit(EventsEnum.TankDestroyed, {
+                    bullet: bulletExplode,
+                    updatedPlayer: hittedPlayer,
+                    oldTank: hittedTank,
+                    newTank,
+                } as TankDestroyed)
             } else {
-                io.sockets.emit(
-                    EventsEnum.BulletExplode,
-                    bulletExplode
-                )
-                io.sockets.emit(
-                    EventsEnum.TankUpdate,
-                    hittedTank
-                )
+                io.sockets.emit(EventsEnum.BulletExplode, bulletExplode)
+                io.sockets.emit(EventsEnum.TankUpdate, hittedTank)
             }
 
             emitedBullets.push(bullet) // we wanna to create bullet, even if it hit target
@@ -292,9 +277,9 @@ setInterval(() => {
     }
     io.sockets.emit(EventsEnum.BulletsUpdate, emitedBullets)
 
-    let tanksForRemove = []
-    for (let id in tanks) {
-        for (let weapon of tanks[id].weapons) {
+    const tanksForRemove = []
+    for (const id in tanks) {
+        for (const weapon of tanks[id].weapons) {
             if (weapon.timeToReload !== null) {
                 if (weapon.timeToReload.ttl <= UPDATE_INTERVAL) {
                     weapon.timeToReload = null
@@ -326,7 +311,7 @@ setInterval(() => {
         }
     }
 
-    for (let id of tanksForRemove) {
+    for (const id of tanksForRemove) {
         delete tanks[id]
     }
 }, UPDATE_INTERVAL)

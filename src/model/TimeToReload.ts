@@ -1,4 +1,4 @@
 export default interface TimeToReload {
-    ttl: number,
-    total: number,
+    ttl: number
+    total: number
 }

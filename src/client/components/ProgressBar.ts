@@ -1,14 +1,14 @@
 import NumberService from '../../services/NumberService'
 
 export default interface ProgressBarOptions {
-    initPercentage: number,
-    borderColor: number,
-    progressColor: number,
-    showLabel: boolean,
-    labelFontSize: number,
-    labelFontFamily: string,
-    labelColor: string,
-    progressBarOffset: number,
+    initPercentage: number
+    borderColor: number
+    progressColor: number
+    showLabel: boolean
+    labelFontSize: number
+    labelFontFamily: string
+    labelColor: string
+    progressBarOffset: number
 }
 
 export default class ProgressBar extends Phaser.GameObjects.Container {
@@ -25,7 +25,7 @@ export default class ProgressBar extends Phaser.GameObjects.Container {
         y: number,
         width: number,
         height: number,
-        options: Partial<ProgressBarOptions> = {}
+        options: Partial<ProgressBarOptions> = {},
     ) {
         super(scene, x, y)
 
@@ -34,35 +34,26 @@ export default class ProgressBar extends Phaser.GameObjects.Container {
         this.progressColor = options.progressColor || 0x00ff00
         this.progressBarOffset = options.progressBarOffset || 1
 
-        this.progressBox = scene.add.graphics();
-        this.progressBar = scene.add.graphics();
+        this.progressBox = scene.add.graphics()
+        this.progressBar = scene.add.graphics()
 
-        this.progressBox
-            .fillStyle(options.borderColor || 0x000000, 0.8)
-            .fillRect(-width/2, 0, width, height)
+        this.progressBox.fillStyle(options.borderColor || 0x000000, 0.8).fillRect(-width / 2, 0, width, height)
 
-        const labelFontSize = options.labelFontSize || (height - 2 * this.progressBarOffset) - 4
-        this.progressLabel = scene.add.text(
-            0,
-            height/2,
-            '',
-            {
+        const labelFontSize = options.labelFontSize || height - 2 * this.progressBarOffset - 4
+        this.progressLabel = scene.add
+            .text(0, height / 2, '', {
                 fontFamily: 'monospace',
                 fontSize: labelFontSize + 'px',
-                color: options.labelColor || 'white'
-            }
-        ).setOrigin(0.5, 0.5)
+                color: options.labelColor || 'white',
+            })
+            .setOrigin(0.5, 0.5)
         this.progressLabel.setVisible(options.showLabel || false)
 
         const initPercentage = options.initPercentage || 1
         this.lastPercentage = -initPercentage // some different value, to force update
         this.progress(initPercentage)
 
-        this.add([
-            this.progressBox,
-            this.progressBar,
-            this.progressLabel,
-        ])
+        this.add([this.progressBox, this.progressBar, this.progressLabel])
     }
 
     progress(percentage: number) {
@@ -75,10 +66,10 @@ export default class ProgressBar extends Phaser.GameObjects.Container {
             .clear()
             .fillStyle(this.progressColor, 1)
             .fillRect(
-                -this.width/2 + this.progressBarOffset,
+                -this.width / 2 + this.progressBarOffset,
                 this.progressBarOffset,
-                (this.width - (2 * this.progressBarOffset)) * normalizedPercentage,
-                this.height - (2 * this.progressBarOffset)
+                (this.width - 2 * this.progressBarOffset) * normalizedPercentage,
+                this.height - 2 * this.progressBarOffset,
             )
         this.progressLabel.setText(NumberService.roundToOneDecimalPlace(100 * normalizedPercentage) + '%')
         this.lastPercentage = percentage

@@ -1,6 +1,5 @@
-import Player from './Player';
-import TankModel from './TankModel';
-import TimeToReload from './TimeToReload';
+import Player from './Player'
+import TankModel from './TankModel'
 
 export default interface MainSceneData {
     socket: SocketIOClient.Socket

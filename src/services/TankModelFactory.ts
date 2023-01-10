@@ -1,6 +1,6 @@
 import Player from '../model/Player'
 import Point from '../model/Point'
-import TankModel, { TankModelConstructor } from '../model/TankModel'
+import TankModel from '../model/TankModel'
 import GeometryService from './GeometryService'
 import TankSetupFactory from './TankSetupFactory'
 
@@ -12,14 +12,17 @@ const findAvailablePosition = (radius: number, tanks: Record<string, TankModel>)
         x = Math.floor(Math.random() * 800) // TODO: make better seeding of x/y
         y = Math.floor(Math.random() * 800)
         availablePosition = true
-        for (let id in tanks) {
-            if (GeometryService.pointsDistance({x, y}, tanks[id].center) < (radius + tanks[id].radius + MIN_TANK_DISTANCE)) {
+        for (const id in tanks) {
+            if (
+                GeometryService.pointsDistance({ x, y }, tanks[id].center) <
+                radius + tanks[id].radius + MIN_TANK_DISTANCE
+            ) {
                 availablePosition = false
                 break
             }
         }
-    } while (! availablePosition)
-    return {x, y}
+    } while (!availablePosition)
+    return { x, y }
 }
 
 export default class TankModelFactory {
@@ -47,7 +50,7 @@ export default class TankModelFactory {
             maxHp: tankSetup.maxHp,
             immortalityTtl: 3000,
             weapons: tankSetup.weapons,
-            color: player.preferedColor
+            color: player.preferedColor,
         })
     }
 }

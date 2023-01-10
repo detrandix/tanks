@@ -1,4 +1,3 @@
-import { Geom } from 'phaser'
 import GeometryService from '../services/GeometryService'
 import Utils from '../services/Utils'
 import Point from './Point'
@@ -7,7 +6,7 @@ import { TankColorEnum } from './TankColorEnum'
 import Weapon from './Weapon'
 
 const computeTurretPosition = (turretYOffset: number, tankAngle: number): Point => {
-    return GeometryService.movePoint({x: 0, y: 0}, GeometryService.deg2rad(tankAngle + 90), turretYOffset)
+    return GeometryService.movePoint({ x: 0, y: 0 }, GeometryService.deg2rad(tankAngle + 90), turretYOffset)
 }
 
 const computeBarrelEndPosition = (barrelEndYOffset: number, turretPosition: Point, turretAngle: number): Point => {
@@ -15,21 +14,21 @@ const computeBarrelEndPosition = (barrelEndYOffset: number, turretPosition: Poin
 }
 
 export type TankModelConstructor = {
-    playerId: string,
-    center: Point,
-    width: number,
-    height: number,
-    radius: number,
-    angle: number,
-    bodyOrigin: Point,
-    turretYOffset: number,
-    turretAngle: number,
-    turretOrigin: Point,
-    barrelEndYOffset: number,
-    maxHp: number,
-    immortalityTtl: number|null,
-    weapons: Array<Weapon>,
-    color: TankColorEnum,
+    playerId: string
+    center: Point
+    width: number
+    height: number
+    radius: number
+    angle: number
+    bodyOrigin: Point
+    turretYOffset: number
+    turretAngle: number
+    turretOrigin: Point
+    barrelEndYOffset: number
+    maxHp: number
+    immortalityTtl: number | null
+    weapons: Array<Weapon>
+    color: TankColorEnum
 }
 
 export default class TankModel {
@@ -50,8 +49,8 @@ export default class TankModel {
     barrelEndPosition: Point
     hp: number
     maxHp: number
-    destroyed: number|false
-    immortalityTtl: number|null
+    destroyed: number | false
+    immortalityTtl: number | null
     weapons: Array<Weapon>
     color: TankColorEnum
 
@@ -77,10 +76,10 @@ export default class TankModel {
 
         // TODO: create polygonGenerator function based on tank type
         this.polygon = new Polygon([
-            {x: data.center.x - data.width/2, y: data.center.y - data.height/2},
-            {x: data.center.x + data.width/2, y: data.center.y - data.height/2},
-            {x: data.center.x + data.width/2, y: data.center.y + data.height/2},
-            {x: data.center.x - data.width/2, y: data.center.y + data.height/2},
+            { x: data.center.x - data.width / 2, y: data.center.y - data.height / 2 },
+            { x: data.center.x + data.width / 2, y: data.center.y - data.height / 2 },
+            { x: data.center.x + data.width / 2, y: data.center.y + data.height / 2 },
+            { x: data.center.x - data.width / 2, y: data.center.y + data.height / 2 },
         ])
         this.turretPosition = computeTurretPosition(this.turretYOffset, this.angle)
         this.barrelEndPosition = computeBarrelEndPosition(this.barrelEndYOffset, this.turretPosition, this.turretAngle)
@@ -90,7 +89,11 @@ export default class TankModel {
      * @param angle The angle of rotation in degreees.
      */
     addRotation(angle: number, tanks: Record<string, TankModel>): void {
-        const newPolygon = GeometryService.rotatePolygonAround(this.polygon, this.center, GeometryService.deg2rad(angle))
+        const newPolygon = GeometryService.rotatePolygonAround(
+            this.polygon,
+            this.center,
+            GeometryService.deg2rad(angle),
+        )
 
         const collision = this.collisitionWithOtherTank(this.center, newPolygon, tanks)
         if (collision !== null) {
@@ -126,15 +129,17 @@ export default class TankModel {
         this.barrelEndPosition = computeBarrelEndPosition(this.barrelEndYOffset, this.turretPosition, this.turretAngle)
     }
 
-    collisitionWithOtherTank(center: Point, polygon: Polygon, tanks: Record<string, TankModel>): TankModel|null {
-        for (let id in tanks) {
+    collisitionWithOtherTank(center: Point, polygon: Polygon, tanks: Record<string, TankModel>): TankModel | null {
+        for (const id in tanks) {
             if (id === this.id) {
                 continue
             }
-            if (! GeometryService.circlesIntersect(
-                {center, radius: this.radius},
-                {center: tanks[id].center, radius: tanks[id].radius},
-            )) {
+            if (
+                !GeometryService.circlesIntersect(
+                    { center, radius: this.radius },
+                    { center: tanks[id].center, radius: tanks[id].radius },
+                )
+            ) {
                 continue
             }
             if (GeometryService.polygonInsidePolygon(polygon, tanks[id].polygon)) {

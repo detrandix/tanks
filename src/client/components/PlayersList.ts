@@ -19,20 +19,20 @@ export default class PlayersList extends Phaser.GameObjects.Container {
 
         const width = scene.scale.transformX(250)
         const height = scene.scale.transformY(200)
-        this.rectangle = scene.add.rectangle(0, 0, width, height, 0x000000, 0.8)
-            .setOrigin(1, 0)
+        this.rectangle = scene.add.rectangle(0, 0, width, height, 0x000000, 0.8).setOrigin(1, 0)
         const titleFontSize = scene.scale.transformY(16)
-        const title = this.scene.add.text(
-            -width + this.transformedPadding,
-            this.transformedPadding,
-            'Players:',
-            {
+        const title = this.scene.add
+            .text(-width + this.transformedPadding, this.transformedPadding, 'Players:', {
                 fontFamily: 'monospace',
                 fontSize: titleFontSize + 'px',
                 //fontStyle: 'strong'
-            }
-        ).setOrigin(0, 0)
-        this.playersContainer = new Phaser.GameObjects.Container(scene, -width + this.transformedPadding, 2*this.transformedPadding + titleFontSize)
+            })
+            .setOrigin(0, 0)
+        this.playersContainer = new Phaser.GameObjects.Container(
+            scene,
+            -width + this.transformedPadding,
+            2 * this.transformedPadding + titleFontSize,
+        )
 
         this.add([this.rectangle, title, this.playersContainer])
 
@@ -51,16 +51,13 @@ export default class PlayersList extends Phaser.GameObjects.Container {
 
         // TODO: sort players
         for (let id in players) {
-            const text = this.scene.add.text(
-                0,
-                y,
-                players[id].name,
-                {
+            const text = this.scene.add
+                .text(0, y, players[id].name, {
                     fontFamily: 'monospace',
                     fontSize: fontSize + 'px',
-                    color: id === playerId ? 'yellow' : 'white'
-                }
-            ).setOrigin(0, 0)
+                    color: id === playerId ? 'yellow' : 'white',
+                })
+                .setOrigin(0, 0)
             this.playersContainer.add(text)
             y += yStep
         }

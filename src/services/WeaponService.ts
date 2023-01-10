@@ -3,9 +3,12 @@ import { WeaponsEnum } from '../model/WeaponsEnum'
 
 const getTimeToReload = (type: WeaponsEnum): number => {
     switch (type as WeaponsEnum) {
-        case WeaponsEnum.Heavy: return 1000
-        case WeaponsEnum.Granade: return 2000
-        default: throw `Unknown weapon type ${type}`
+        case WeaponsEnum.Heavy:
+            return 1000
+        case WeaponsEnum.Granade:
+            return 2000
+        default:
+            throw `Unknown weapon type ${type}`
     }
 }
 

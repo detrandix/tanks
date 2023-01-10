@@ -6,13 +6,13 @@ export default class WeaponIndicator extends Phaser.GameObjects.Container {
     image: Phaser.GameObjects.Sprite
     actualPercentage: number
 
-	constructor(scene: Phaser.Scene, x: number, y: number, weapon: string)
-	{
-		super(scene, x, y)
+    constructor(scene: Phaser.Scene, x: number, y: number, weapon: string) {
+        super(scene, x, y)
         this.setScrollFactor(0)
         this.setDepth(100)
 
-        this.backgroundCircle = scene.add.graphics()
+        this.backgroundCircle = scene.add
+            .graphics()
             .fillStyle(0x999999, 1)
             .fillCircle(0, 0, scene.scale.transformX(CIRCLE_RADIUS))
             .closePath()
@@ -23,12 +23,8 @@ export default class WeaponIndicator extends Phaser.GameObjects.Container {
 
         this.image = scene.add.sprite(0, 0, weapon)
 
-        this.add([
-            this.backgroundCircle,
-            this.arc,
-            this.image
-        ])
-	}
+        this.add([this.backgroundCircle, this.arc, this.image])
+    }
 
     setTimeToReload(percentage: number) {
         if (this.actualPercentage === percentage) {
@@ -39,7 +35,14 @@ export default class WeaponIndicator extends Phaser.GameObjects.Container {
         this.arc
             .clear()
             .fillStyle(0xffff00, alpha)
-            .slice(0, 0, this.scene.scale.transformX(CIRCLE_RADIUS), Phaser.Math.DegToRad(percentage*360), Phaser.Math.DegToRad(0), true)
+            .slice(
+                0,
+                0,
+                this.scene.scale.transformX(CIRCLE_RADIUS),
+                Phaser.Math.DegToRad(percentage * 360),
+                Phaser.Math.DegToRad(0),
+                true,
+            )
             .fillPath()
         this.actualPercentage = percentage
     }

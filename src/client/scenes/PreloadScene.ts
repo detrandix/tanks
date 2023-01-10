@@ -1,20 +1,20 @@
-import Player from '../../model/Player';
+import Player from '../../model/Player'
 import io from 'socket.io-client'
-import MainSceneData from '../../model/MainSceneData';
-import { EventsEnum } from '../../model/EventsEnum';
-import InitStateEvent from '../../model/InitStateEvent';
-import ProgressBar from '../components/ProgressBar';
+import MainSceneData from '../../model/MainSceneData'
+import { EventsEnum } from '../../model/EventsEnum'
+import InitStateEvent from '../../model/InitStateEvent'
+import ProgressBar from '../components/ProgressBar'
 
 export default class Preload extends Phaser.Scene {
-    socket: SocketIOClient.Socket;
-    progressBar: ProgressBar;
-    assetText: Phaser.GameObjects.Text;
+    socket: SocketIOClient.Socket
+    progressBar: ProgressBar
+    assetText: Phaser.GameObjects.Text
 
     constructor() {
-        super('PreloadScene');
+        super('PreloadScene')
     }
 
-	preload() {
+    preload() {
         this.prepareScreen()
 
         let dpr = this.scale.displayScale.x // we suppose that x === y
@@ -65,65 +65,57 @@ export default class Preload extends Phaser.Scene {
         this.load.audio('heavy-shot', 'assets/music/heavy-shot.wav')
         this.load.audio('granade-shot', 'assets/music/granade-shot.wav')
         this.load.audio('hit', 'assets/music/hit.wav')
-	}
+    }
 
-	create() {
+    create() {
         this.anims.create({
             key: 'exhaust',
             frames: [
-                {key: 'exhaust0'},
-                {key: 'exhaust1'},
-                {key: 'exhaust2'},
-                {key: 'exhaust3'},
-                {key: 'exhaust4'},
-                {key: 'exhaust5'},
-                {key: 'exhaust6'},
-                {key: 'exhaust7'},
-                {key: 'exhaust8'},
-                {key: 'exhaust9'},
+                { key: 'exhaust0' },
+                { key: 'exhaust1' },
+                { key: 'exhaust2' },
+                { key: 'exhaust3' },
+                { key: 'exhaust4' },
+                { key: 'exhaust5' },
+                { key: 'exhaust6' },
+                { key: 'exhaust7' },
+                { key: 'exhaust8' },
+                { key: 'exhaust9' },
             ],
             frameRate: 16,
-            repeat: 0
+            repeat: 0,
         })
 
         this.anims.create({
             key: 'shot-impact',
-            frames: [
-                {key: 'impact0'},
-                {key: 'impact1'},
-                {key: 'impact2'},
-                {key: 'impact3'},
-            ],
+            frames: [{ key: 'impact0' }, { key: 'impact1' }, { key: 'impact2' }, { key: 'impact3' }],
             frameRate: 16,
-            repeat: 5
+            repeat: 5,
         })
 
         this.anims.create({
             key: 'explosion',
             frames: [
-                {key: 'explosion0'},
-                {key: 'explosion1'},
-                {key: 'explosion2'},
-                {key: 'explosion3'},
-                {key: 'explosion4'},
-                {key: 'explosion5'},
-                {key: 'explosion6'},
-                {key: 'explosion7'},
-                {key: 'explosion8'},
+                { key: 'explosion0' },
+                { key: 'explosion1' },
+                { key: 'explosion2' },
+                { key: 'explosion3' },
+                { key: 'explosion4' },
+                { key: 'explosion5' },
+                { key: 'explosion6' },
+                { key: 'explosion7' },
+                { key: 'explosion8' },
             ],
             frameRate: 16,
-            repeat: -1
+            repeat: -1,
         })
 
-        this.add.text(
-            this.cameras.main.centerX,
-            this.cameras.main.centerY + this.scale.transformY(20),
-            'connection...',
-            {
+        this.add
+            .text(this.cameras.main.centerX, this.cameras.main.centerY + this.scale.transformY(20), 'connection...', {
                 fontFamily: 'monospace',
-                fontSize: this.scale.transformX(30) + 'px'
-            }
-        ).setOrigin(0.5, 0.5)
+                fontSize: this.scale.transformX(30) + 'px',
+            })
+            .setOrigin(0.5, 0.5)
 
         this.socket = io()
 
@@ -134,18 +126,15 @@ export default class Preload extends Phaser.Scene {
                 tanks: initStateEvent.tanks,
             } as MainSceneData)
         })
-	}
+    }
 
     prepareScreen() {
-        this.add.text(
-            this.cameras.main.centerX,
-            this.cameras.main.centerY - this.scale.transformY(50),
-            'TANKS',
-            {
+        this.add
+            .text(this.cameras.main.centerX, this.cameras.main.centerY - this.scale.transformY(50), 'TANKS', {
                 fontFamily: 'monospace',
-                fontSize: this.scale.transformX(50) + 'px'
-            }
-        ).setOrigin(0.5, 0.5)
+                fontSize: this.scale.transformX(50) + 'px',
+            })
+            .setOrigin(0.5, 0.5)
         this.progressBar = new ProgressBar(
             this,
             this.cameras.main.centerX,
@@ -157,20 +146,16 @@ export default class Preload extends Phaser.Scene {
                 borderColor: 0x444444,
                 progressColor: 0x999999,
                 showLabel: true,
-                progressBarOffset: this.scale.transformX(8)
-            }
-        )
-            .setDepth(3)
+                progressBarOffset: this.scale.transformX(8),
+            },
+        ).setDepth(3)
         this.add.existing(this.progressBar)
-        this.assetText = this.add.text(
-            this.cameras.main.centerX,
-            this.cameras.main.centerY + this.scale.transformY(70),
-            '',
-            {
+        this.assetText = this.add
+            .text(this.cameras.main.centerX, this.cameras.main.centerY + this.scale.transformY(70), '', {
                 fontFamily: 'monospace',
-                fontSize: this.scale.transformX(15) + 'px'
-            }
-        ).setOrigin(0.5, 0.5)
+                fontSize: this.scale.transformX(15) + 'px',
+            })
+            .setOrigin(0.5, 0.5)
 
         this.load.on('fileprogress', (file: Phaser.Loader.File) => this.fileProgress(file))
         this.load.on('progress', (value: number) => this.progress(value))

@@ -9,17 +9,21 @@ import ProgressBar from './ProgressBar'
 const TWEEN_IMORTALITY_DURATION = 300
 const SOUND_DISTANCE = 1000
 
-const playDistanceSound = (sound: Phaser.Sound.BaseSound, tankModel: TankModel, actualPlayerTankModel: TankModel): void => {
+const playDistanceSound = (
+    sound: Phaser.Sound.BaseSound,
+    tankModel: TankModel,
+    actualPlayerTankModel: TankModel,
+): void => {
     const playersDistance = Phaser.Math.Distance.Between(
         tankModel.center.x,
         tankModel.center.y,
         actualPlayerTankModel.center.x,
-        actualPlayerTankModel.center.y
+        actualPlayerTankModel.center.y,
     )
 
-    let normalizedVolume = 1 - (playersDistance / SOUND_DISTANCE)
+    let normalizedVolume = 1 - playersDistance / SOUND_DISTANCE
     if (normalizedVolume > 0) {
-        sound.play({volume: normalizedVolume})
+        sound.play({ volume: normalizedVolume })
     }
 }
 
@@ -27,7 +31,7 @@ export default class Tank extends Phaser.GameObjects.Container {
     tankBody: Phaser.GameObjects.Sprite
     tankTurret: Phaser.GameObjects.Sprite
     hpProgressBar: ProgressBar
-    tweenImmortality: Phaser.Tweens.Tween|null = null
+    tweenImmortality: Phaser.Tweens.Tween | null = null
     nameLabel: Phaser.GameObjects.Text
     exhaustAnimation: Phaser.GameObjects.Sprite
     impactAnimation: Phaser.GameObjects.Sprite
@@ -37,8 +41,8 @@ export default class Tank extends Phaser.GameObjects.Container {
     impactSound: Phaser.Sound.BaseSound
     lastPercentage: number
 
-    constructor(scene: Phaser.Scene, tankModel: TankModel, player: Player|null) {
-		super(scene, scene.scale.transformX(tankModel.center.x), scene.scale.transformY(tankModel.center.y))
+    constructor(scene: Phaser.Scene, tankModel: TankModel, player: Player | null) {
+        super(scene, scene.scale.transformX(tankModel.center.x), scene.scale.transformY(tankModel.center.y))
 
         this.tankBody = scene.add
             .sprite(0, 0, 'tank-body-' + tankModel.color)
@@ -51,45 +55,41 @@ export default class Tank extends Phaser.GameObjects.Container {
             .sprite(
                 scene.scale.transformX(tankModel.turretPosition.x),
                 scene.scale.transformY(tankModel.turretPosition.y),
-                'tank-turret-' + tankModel.color
+                'tank-turret-' + tankModel.color,
             )
             .setOrigin(tankModel.turretOrigin.x, tankModel.turretOrigin.y)
             .setDepth(2)
         this.tankTurret.angle = tankModel.turretAngle
 
-        this.hpProgressBar = new ProgressBar(scene, scene.scale.transformX(0), scene.scale.transformY(-100), scene.scale.transformX(100), scene.scale.transformY(10))
-            .setDepth(3)
+        this.hpProgressBar = new ProgressBar(
+            scene,
+            scene.scale.transformX(0),
+            scene.scale.transformY(-100),
+            scene.scale.transformX(100),
+            scene.scale.transformY(10),
+        ).setDepth(3)
         scene.add.existing(this.hpProgressBar)
 
         this.nameLabel = scene.add
-            .text(
-                scene.scale.transformX(0),
-                scene.scale.transformY(-80),
-                '',
-                {
-                    backgroundColor: 'rgba(0, 0, 0, .5)',
-                    fontSize: Math.round(scene.scale.transformX(14)) + 'px', // find some better solution for transforming text size
-                }
-            )
+            .text(scene.scale.transformX(0), scene.scale.transformY(-80), '', {
+                backgroundColor: 'rgba(0, 0, 0, .5)',
+                fontSize: Math.round(scene.scale.transformX(14)) + 'px', // find some better solution for transforming text size
+            })
             .setOrigin(0.5, 0)
             .setDepth(3)
 
-        this.exhaustAnimation = this.scene.add.sprite(0, 0, 'exhaust0')
-            .setDepth(4)
+        this.exhaustAnimation = this.scene.add.sprite(0, 0, 'exhaust0').setDepth(4)
         this.exhaustAnimation.visible = false
 
-        this.impactAnimation = this.scene.add.sprite(0, 0, 'impact0')
-            .setDepth(1)
+        this.impactAnimation = this.scene.add.sprite(0, 0, 'impact0').setDepth(1)
         this.impactAnimation.visible = false
 
-        this.explosionAnimation = this.scene.add.sprite(0, 0, 'explosion0')
-            .setDepth(4)
-            .setOrigin(0.5, 0.5)
+        this.explosionAnimation = this.scene.add.sprite(0, 0, 'explosion0').setDepth(4).setOrigin(0.5, 0.5)
         this.explosionAnimation.visible = false
 
-        this.exhaustHeavySound = this.scene.sound.add('heavy-shot', {loop: false})
-        this.exhaustGranadeSound = this.scene.sound.add('granade-shot', {loop: false})
-        this.impactSound = this.scene.sound.add('hit', {loop: false})
+        this.exhaustHeavySound = this.scene.sound.add('heavy-shot', { loop: false })
+        this.exhaustGranadeSound = this.scene.sound.add('granade-shot', { loop: false })
+        this.impactSound = this.scene.sound.add('hit', { loop: false })
 
         this.add([
             this.tankBody,
@@ -104,7 +104,7 @@ export default class Tank extends Phaser.GameObjects.Container {
         this.update(tankModel, player)
     }
 
-    update(tankModel: TankModel, player: Player|null): void {
+    update(tankModel: TankModel, player: Player | null): void {
         this.move(tankModel)
         this.updateImortality(tankModel)
         this.nameLabel.setText(player ? player.name : '💀')
@@ -150,13 +150,16 @@ export default class Tank extends Phaser.GameObjects.Container {
 
     getSoundForWeapon(weapon: WeaponsEnum): Phaser.Sound.BaseSound {
         switch (weapon as WeaponsEnum) {
-            case WeaponsEnum.Heavy: return this.exhaustHeavySound
-            case WeaponsEnum.Granade: return this.exhaustGranadeSound
-            default: throw `Unknown reapon ${weapon}`
+            case WeaponsEnum.Heavy:
+                return this.exhaustHeavySound
+            case WeaponsEnum.Granade:
+                return this.exhaustGranadeSound
+            default:
+                throw `Unknown reapon ${weapon}`
         }
     }
 
-    exhaust(tankModel: TankModel, bullet: Bullet, actualPlayerTankModel: TankModel|null): void {
+    exhaust(tankModel: TankModel, bullet: Bullet, actualPlayerTankModel: TankModel | null): void {
         this.setExhaustAnimationPosition(tankModel)
         this.exhaustAnimation.visible = true
         this.exhaustAnimation.play('exhaust', false)
@@ -171,15 +174,18 @@ export default class Tank extends Phaser.GameObjects.Container {
     }
 
     setExhaustAnimationPosition(tankModel: TankModel): void {
-        if (! this.exhaustAnimation.active) {
+        if (!this.exhaustAnimation.active) {
             return
         }
-        this.exhaustAnimation.setPosition(this.scene.scale.transformX(tankModel.barrelEndPosition.x), this.scene.scale.transformX(tankModel.barrelEndPosition.y))
+        this.exhaustAnimation.setPosition(
+            this.scene.scale.transformX(tankModel.barrelEndPosition.x),
+            this.scene.scale.transformX(tankModel.barrelEndPosition.y),
+        )
         this.exhaustAnimation.angle = tankModel.turretAngle + 180 // image is upside down
     }
 
-    impact(bulletExplode: BulletExplode, tankModel: TankModel, actualPlayerTankModel: TankModel|null): void {
-        const x = this.scene.scale.transformX(bulletExplode.x)- this.x
+    impact(bulletExplode: BulletExplode, tankModel: TankModel, actualPlayerTankModel: TankModel | null): void {
+        const x = this.scene.scale.transformX(bulletExplode.x) - this.x
         const y = this.scene.scale.transformY(bulletExplode.y) - this.y
         this.impactAnimation.setPosition(x, y)
         this.impactAnimation.angle = Phaser.Math.RadToDeg(Phaser.Math.Angle.Between(0, 0, x, y)) + 90
@@ -198,9 +204,9 @@ export default class Tank extends Phaser.GameObjects.Container {
         const angleDiff = this.tankBody.angle - this.impactAnimation.angle
         this.impactAnimation.angle = this.tankBody.angle
         const newPoint = GeometryService.rotatePointAround(
-            {x: this.impactAnimation.x, y: this.impactAnimation.y},
-            {x: 0, y: 0},
-            GeometryService.deg2rad(angleDiff)
+            { x: this.impactAnimation.x, y: this.impactAnimation.y },
+            { x: 0, y: 0 },
+            GeometryService.deg2rad(angleDiff),
         )
         this.impactAnimation.x = newPoint.x
         this.impactAnimation.y = newPoint.y
